@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DoctorAppointment.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/admin")]
     public class AdminController
     {
         private readonly AdminService _adminService;

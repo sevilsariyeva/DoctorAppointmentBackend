@@ -15,9 +15,9 @@ namespace DoctorAppointment.Repositories
             _adminCollection = mongoDbService.GetDatabase().GetCollection<Admin>("admins");
         }
 
-        public Admin GetAdminByEmail(string email)
+        public async Task<Admin> GetAdminByEmailAsync(string email)
         {
-            return _adminCollection.Find(admin => admin.Email == email).FirstOrDefault();
+            return await _adminCollection.Find(admin => admin.Email == email).FirstOrDefaultAsync();
         }
     }
 }

@@ -1,36 +1,54 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Attributes;
+using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace DoctorAppointment.Models
 {
     public class Doctor
     {
-        public String Id { get; set; }
-        [Required]
-        public String Name { get; set; }
+        [BsonId]
+        [BsonRepresentation(BsonType.ObjectId)]
+        public string Id { get; set; }
 
         [Required]
-        public String Email { get; set; }
+        [BsonElement("name")]
+        public string Name { get; set; }
 
         [Required]
-        public String Password { get; set; }
+        [BsonElement("email")]
+        public string Email { get; set; }
+
         [Required]
-        public String ImageUrl { get; set; }
+        [BsonElement("password")]
+        public string Password { get; set; }
+
         [Required]
-        public String Speciality { get; set; }
+        [BsonElement("experience")]
+        public string Experience { get; set; }
+
         [Required]
-        public String Degree { get; set; }
+        [BsonElement("fees")]
+        public decimal Fees { get; set; }
+
         [Required]
-        public String Experience { get; set; }
+        [BsonElement("about")]
+        public string About { get; set; }
+
         [Required]
-        public String About { get; set; }
+        [BsonElement("speciality")]
+        public string Speciality { get; set; }
+
         [Required]
-        public Boolean Available { get; set; }
-        [Required]
-        public Double Fees { get; set; }
-        [Required]
-        public Object Address { get; set; }
-        [Required]
-        public DateTime Date { get; set; }
-        public Object SlotsBooked { get; set; }
+        [BsonElement("degree")]
+        public string Degree { get; set; }
+
+        [BsonElement("imagePath")]
+        public string ImagePath { get; set; } // Şəkilin yolu
+
+        [BsonElement("address")]
+        public Address Address { get; set; }
     }
+
+    
 }

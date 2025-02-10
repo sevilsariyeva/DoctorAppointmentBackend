@@ -1,10 +1,14 @@
 ﻿using DoctorAppointment.Repositories;
 using DoctorAppointment.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
+using System.Security.Claims;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
-var configuration = builder.Configuration; // IConfiguration buradan alınır
+var configuration = builder.Configuration;
 
 // MongoDB konfiqurasiyası
 builder.Services.AddSingleton<IMongoClient>(sp =>
@@ -16,23 +20,40 @@ builder.Services.AddSingleton<IMongoClient>(sp =>
 // Xidmətlərin DI konfiqurasiyası
 builder.Services.AddSingleton<CloudinaryService>();
 builder.Services.AddSingleton<MongoDbService>();
-builder.Services.AddSingleton<AdminService>();
+builder.Services.AddSingleton<IAdminService,AdminService>();
+builder.Services.AddSingleton<IDoctorService,DoctorService>();
 builder.Services.AddSingleton<IAdminRepository, AdminRepository>();
+builder.Services.AddSingleton<IDoctorRepository, DoctorRepository>();
 
 
 var frontendUrl = configuration.GetValue<string>("frontend_url");
 var adminUrl = configuration.GetValue<string>("admin_url");
 
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:SecretKey"]))
+        };
+    });
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Admin", policy => policy.RequireClaim(ClaimTypes.Role, "Admin"));
+});
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowFrontendAndAdmin", policyBuilder =>
-    {
-        policyBuilder.SetIsOriginAllowed(origin =>
-            origin == frontendUrl || origin == adminUrl)
-        .AllowAnyMethod()
-        .AllowAnyHeader();
-    });
+    options.AddPolicy("AllowAll", builder =>
+        builder.AllowAnyOrigin()
+               .AllowAnyMethod()
+               .AllowAnyHeader());
 });
+
+
+
 
 builder.Services.AddControllersWithViews();
 
@@ -48,7 +69,8 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-app.UseCors("AllowFrontendAndAdmin"); 
+app.UseCors("AllowAll");
+
 
 app.UseAuthorization();
 

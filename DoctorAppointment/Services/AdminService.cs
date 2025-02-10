@@ -1,28 +1,33 @@
-﻿using Microsoft.IdentityModel.Tokens;
+﻿using DoctorAppointment.Repositories;
+using DoctorAppointment.Models;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using DoctorAppointment.Repositories;
-using DoctorAppointment.Models;
-using DoctorAppointment.Utilities;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity;
 
 namespace DoctorAppointment.Services
 {
-    public class AdminService
+    public class AdminService : IAdminService
     {
         private readonly IAdminRepository _adminRepository;
         private readonly IConfiguration _configuration;
+        private readonly PasswordHasher<Admin> _passwordHasher;
 
         public AdminService(IAdminRepository adminRepository, IConfiguration configuration)
         {
             _configuration = configuration;
             _adminRepository = adminRepository;
+            _passwordHasher = new PasswordHasher<Admin>();
         }
 
-        public string LoginAdmin(string email, string password)
+        public async Task<string> LoginAdmin(string email, string password)
         {
-            var admin=_adminRepository.GetAdminByEmail(email);
-            if (admin == null || admin.Password != password) 
+            var admin = await _adminRepository.GetAdminByEmailAsync(email);  
+
+            if (admin == null || admin.Password != password)
             {
                 throw new UnauthorizedAccessException("Invalid credentials");
             }
@@ -37,7 +42,9 @@ namespace DoctorAppointment.Services
             var secretKey = _configuration["Jwt:SecretKey"];
 
             if (string.IsNullOrEmpty(secretKey))
+            {
                 throw new InvalidOperationException("JWT SecretKey is not configured.");
+            }
 
             var key = Encoding.UTF8.GetBytes(secretKey);
 
@@ -46,9 +53,10 @@ namespace DoctorAppointment.Services
                 Subject = new ClaimsIdentity(new Claim[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, admin.Id.ToString()),
-                    new Claim(ClaimTypes.Email, admin.Email), 
+                    new Claim(ClaimTypes.Email, admin.Email),
+                    new Claim(ClaimTypes.Role, "Admin")  
                 }),
-                Expires = DateTime.UtcNow.AddHours(1), 
+                Expires = DateTime.UtcNow.AddHours(1),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
 

@@ -4,6 +4,6 @@ namespace DoctorAppointment.Repositories
 {
     public interface IAdminRepository
     {
-        Admin GetAdminByEmail(string email);
+        Task<Admin> GetAdminByEmailAsync(string email);
     }
 }
