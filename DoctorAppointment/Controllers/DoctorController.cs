@@ -21,6 +21,12 @@ namespace DoctorAppointment.Controllers
             await _doctorService.AddDoctorAsync(doctorDto, image);
             return Ok(new { success = true, message = "Doctor added successfully" });
         }
+        [HttpGet("all-doctors")]
+        public async Task<IActionResult> GetAllDoctors()
+        {
+            var doctors = await _doctorService.GetAllDoctorsAsync();
+            return Ok(doctors);
+        }
 
     }
 

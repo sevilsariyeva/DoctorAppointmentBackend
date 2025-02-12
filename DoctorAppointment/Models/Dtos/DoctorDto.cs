@@ -26,6 +26,8 @@ namespace DoctorAppointment.Models.Dtos
 
         [Required]
         public string About { get; set; }
+        [Required]
+        public bool Available { get; set; }
 
         [Required]
         public string Speciality { get; set; }
@@ -36,7 +38,7 @@ namespace DoctorAppointment.Models.Dtos
         public string Address1 { get; set; }
         public string Address2 { get; set; }
 
-        public IFormFile Image { get; set; }
+        public string? Image { get; set; }
     }
 
 }

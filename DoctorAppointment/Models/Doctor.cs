@@ -43,11 +43,14 @@ namespace DoctorAppointment.Models
         [BsonElement("degree")]
         public string Degree { get; set; }
 
-        [BsonElement("imagePath")]
-        public string ImagePath { get; set; } // Şəkilin yolu
+        [BsonElement("image")]
+        public string? Image { get; set; } 
 
         [BsonElement("address")]
         public Address Address { get; set; }
+
+        [BsonElement("available")]
+        public bool Available { get; set; }
     }
 
     

@@ -14,13 +14,13 @@ namespace DoctorAppointment.Services
     {
         private readonly IAdminRepository _adminRepository;
         private readonly IConfiguration _configuration;
-        private readonly PasswordHasher<Admin> _passwordHasher;
+        private readonly IPasswordHasher<Admin> _passwordHasher;
 
-        public AdminService(IAdminRepository adminRepository, IConfiguration configuration)
+        public AdminService(IAdminRepository adminRepository, IConfiguration configuration, IPasswordHasher<Admin> passwordHasher)
         {
             _configuration = configuration;
             _adminRepository = adminRepository;
-            _passwordHasher = new PasswordHasher<Admin>();
+            _passwordHasher =passwordHasher;
         }
 
         public async Task<string> LoginAdmin(string email, string password)

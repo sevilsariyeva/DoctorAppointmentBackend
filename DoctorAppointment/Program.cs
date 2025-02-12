@@ -1,7 +1,10 @@
-﻿using DoctorAppointment.Repositories;
+﻿using DoctorAppointment.Models;
+using DoctorAppointment.Repositories;
 using DoctorAppointment.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using MongoDB.Driver;
 using System.Security.Claims;
@@ -18,10 +21,12 @@ builder.Services.AddSingleton<IMongoClient>(sp =>
 });
 
 // Xidmətlərin DI konfiqurasiyası
+builder.Services.AddScoped<IPasswordHasher<Doctor>, PasswordHasher<Doctor>>();
+builder.Services.AddScoped<IPasswordHasher<Admin>, PasswordHasher<Admin>>();
 builder.Services.AddSingleton<CloudinaryService>();
 builder.Services.AddSingleton<MongoDbService>();
-builder.Services.AddSingleton<IAdminService,AdminService>();
-builder.Services.AddSingleton<IDoctorService,DoctorService>();
+builder.Services.AddScoped<IAdminService,AdminService>();
+builder.Services.AddScoped<IDoctorService,DoctorService>();
 builder.Services.AddSingleton<IAdminRepository, AdminRepository>();
 builder.Services.AddSingleton<IDoctorRepository, DoctorRepository>();
 
@@ -78,4 +83,10 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(
+        Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads")),
+    RequestPath = "/uploads"
+});
 app.Run();

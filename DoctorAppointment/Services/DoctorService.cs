@@ -9,13 +9,13 @@ public class DoctorService : IDoctorService
 {
     private readonly IDoctorRepository _doctorRepository;
     private readonly IWebHostEnvironment _environment;
-    private readonly PasswordHasher<Doctor> _passwordHasher;
+    private readonly IPasswordHasher<Doctor> _passwordHasher;
 
-    public DoctorService(IDoctorRepository doctorRepository, IWebHostEnvironment environment)
+    public DoctorService(IDoctorRepository doctorRepository, IWebHostEnvironment environment, IPasswordHasher<Doctor> passwordHasher)
     {
         _doctorRepository = doctorRepository;
         _environment = environment;
-        _passwordHasher = new PasswordHasher<Doctor>(); 
+        _passwordHasher = passwordHasher;
     }
 
 
@@ -52,7 +52,7 @@ public class DoctorService : IDoctorService
             Email = doctorDto.Email,
             Password = doctorDto.Password,
             Speciality = doctorDto.Speciality,
-            ImagePath = fileName != null ? "/uploads/" + fileName : null,
+            Image = fileName != null ? "/uploads/" + fileName : null,
             Degree = doctorDto.Degree,
             Experience = doctorDto.Experience,
             Fees = doctorDto.Fees,
@@ -70,6 +70,24 @@ public class DoctorService : IDoctorService
         return doctor;
     }
 
+    public async Task<List<DoctorDto>> GetAllDoctorsAsync()
+    {
+        var doctors = await _doctorRepository.GetAllDoctorsAsync();
 
-
+        return doctors.Select(d=>new DoctorDto
+        {
+            Name=d.Name,
+            Email = d.Email,
+            Password = d.Password,
+            Speciality = d.Speciality,
+            Image = d.Image,
+            Degree = d.Degree,
+            Experience = d.Experience,
+            Fees = d.Fees,
+            About = d.About,
+            Available=d.Available,
+            Address1=d.Address1,
+            Address2=d.Address2,
+        }).ToList();
+    }
 }

@@ -7,5 +7,6 @@ namespace DoctorAppointment.Services
     public interface IDoctorService
     {
         Task<Doctor> AddDoctorAsync(DoctorDto doctorDto, IFormFile image);
+        Task<List<DoctorDto>> GetAllDoctorsAsync();
     }
 }
