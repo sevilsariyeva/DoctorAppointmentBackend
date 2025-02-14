@@ -8,5 +8,6 @@ namespace DoctorAppointment.Services
     {
         Task<Doctor> AddDoctorAsync(DoctorDto doctorDto, IFormFile image);
         Task<List<DoctorDto>> GetAllDoctorsAsync();
+        Task<bool> ChangeAvailabilityAsync(string doctorId);
     }
 }

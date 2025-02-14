@@ -1,6 +1,8 @@
 ﻿using DoctorAppointment.Models;
 using DoctorAppointment.Models.Dtos;
 using DoctorAppointment.Services;
+using Microsoft.EntityFrameworkCore;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using System.Threading.Tasks;
 
@@ -38,8 +40,23 @@ namespace DoctorAppointment.Repositories
                 Available=d.Available,
                 Address1 = d.Address?.Line1,
                 Address2 = d.Address?.Line2,
-                Image = d.Image
+                Image = d.Image,
+                Id = d.Id.ToString()
             }).ToList();
+        }
+        public async Task<Doctor> GetDoctorByIdAsync(string doctorId)
+        {
+            var objectId = ObjectId.Parse(doctorId);
+
+            var filter = Builders<Doctor>.Filter.Eq(d => d.Id, objectId);
+
+            return await _doctorsCollection.Find(filter).FirstOrDefaultAsync();
+        }
+
+        public async Task UpdateDoctorAsync(Doctor doctor)
+        {
+            var filter = Builders<Doctor>.Filter.Eq(d => d.Id, doctor.Id);
+            await _doctorsCollection.ReplaceOneAsync(filter, doctor);
         }
 
     }

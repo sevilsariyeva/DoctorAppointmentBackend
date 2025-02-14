@@ -4,6 +4,7 @@ using DoctorAppointment.Repositories;
 using DoctorAppointment.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
+using MongoDB.Bson;
 
 public class DoctorService : IDoctorService
 {
@@ -69,6 +70,26 @@ public class DoctorService : IDoctorService
 
         return doctor;
     }
+    public async Task<bool> ChangeAvailabilityAsync(string doctorId)
+    {
+        if (string.IsNullOrEmpty(doctorId) || !ValidateDoctorId(doctorId))
+        {
+            return false;
+        }
+
+        var doctor = await _doctorRepository.GetDoctorByIdAsync(doctorId);
+        if (doctor == null)
+        {
+            return false;
+        }
+
+        doctor.Available = !doctor.Available;
+        await _doctorRepository.UpdateDoctorAsync(doctor);
+
+        return true;
+    }
+
+
 
     public async Task<List<DoctorDto>> GetAllDoctorsAsync()
     {
@@ -76,6 +97,7 @@ public class DoctorService : IDoctorService
 
         return doctors.Select(d=>new DoctorDto
         {
+            Id = d.Id,
             Name=d.Name,
             Email = d.Email,
             Password = d.Password,
@@ -89,5 +111,9 @@ public class DoctorService : IDoctorService
             Address1=d.Address1,
             Address2=d.Address2,
         }).ToList();
+    }
+    private bool ValidateDoctorId(string doctorId)
+    {
+        return ObjectId.TryParse(doctorId, out _);
     }
 }

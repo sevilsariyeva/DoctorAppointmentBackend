@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DoctorAppointment.Controllers
 {
     [ApiController]
-    [Route("api/admin")]
+    [Route("api/doctors")]
     public class DoctorController : ControllerBase
     {
         private readonly IDoctorService _doctorService;
@@ -27,6 +27,18 @@ namespace DoctorAppointment.Controllers
             var doctors = await _doctorService.GetAllDoctorsAsync();
             return Ok(doctors);
         }
+        [HttpPut("change-availability/{doctorId}")]
+        public async Task<IActionResult> ChangeAvailability(string doctorId)
+        {
+            var success = await _doctorService.ChangeAvailabilityAsync(doctorId);
+            if (!success)
+            {
+                return NotFound(new { success = false, message = "Doctor not found" });
+            }
+
+            return Ok(new { success = true, message = "Availability updated successfully" });
+        }
+
 
     }
 

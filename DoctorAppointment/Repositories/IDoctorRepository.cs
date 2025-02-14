@@ -7,5 +7,7 @@ namespace DoctorAppointment.Repositories
     {
         Task<Doctor> AddDoctorAsync(Doctor doctor);
         Task<List<DoctorDto>> GetAllDoctorsAsync();
+        Task<Doctor> GetDoctorByIdAsync(string doctorId);
+        Task UpdateDoctorAsync(Doctor doctor);
     }
 }
