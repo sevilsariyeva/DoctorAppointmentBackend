@@ -23,12 +23,15 @@ builder.Services.AddSingleton<IMongoClient>(sp =>
 // Xidmətlərin DI konfiqurasiyası
 builder.Services.AddScoped<IPasswordHasher<Doctor>, PasswordHasher<Doctor>>();
 builder.Services.AddScoped<IPasswordHasher<Admin>, PasswordHasher<Admin>>();
+builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddSingleton<CloudinaryService>();
 builder.Services.AddSingleton<MongoDbService>();
 builder.Services.AddScoped<IAdminService,AdminService>();
 builder.Services.AddScoped<IDoctorService,DoctorService>();
+builder.Services.AddScoped<IUserService,UserService>();
 builder.Services.AddSingleton<IAdminRepository, AdminRepository>();
 builder.Services.AddSingleton<IDoctorRepository, DoctorRepository>();
+builder.Services.AddSingleton<IUserRepository, UserRepository>();
 
 
 var frontendUrl = configuration.GetValue<string>("frontend_url");

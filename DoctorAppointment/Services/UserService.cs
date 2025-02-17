@@ -16,14 +16,16 @@ namespace DoctorAppointment.Services
         private readonly IUserRepository _userRepository;
         private readonly IConfiguration _configuration;
         private readonly IPasswordHasher<User> _passwordHasher;
-        public UserService(IUserRepository userRepository,IPasswordHasher<User> passwordHasher)
+        public UserService(IUserRepository userRepository,IPasswordHasher<User> passwordHasher,IConfiguration configuration)
         {
             _userRepository = userRepository;
             _passwordHasher = passwordHasher;
+            _configuration = configuration;
         }
 
         public async Task<RegisterUserResponse> RegisterUserAsync(RegisterUserRequest request)
         {
+            Console.WriteLine($"Received Request: FullName={request.FullName}, Email={request.Email}, Password={request.Password}");
             if (!IsValidEmail(request.Email))
             {
                 return new RegisterUserResponse { Success = false, Message = "Invalid email format." };
@@ -40,13 +42,13 @@ namespace DoctorAppointment.Services
                 return new RegisterUserResponse { Success = false, Message = "Email is already in use." };
             }
 
-            var hashedPassword = HashPassword(request.Password);
             var newUser = new User
             {
                 FullName = request.FullName,
                 Email = request.Email,
-                Password = hashedPassword
             };
+            var hashedPassword = _passwordHasher.HashPassword(newUser, request.Password);
+            newUser.Password = hashedPassword;
 
             var result = await _userRepository.AddUserAsync(newUser);
             if (!result)
@@ -71,16 +73,13 @@ namespace DoctorAppointment.Services
                    password.Any(char.IsLower) &&
                    password.Any(char.IsDigit);
         }
-        private string HashPassword(string password)
-        {
-            using (SHA256 sha256 = SHA256.Create())
-            {
-                byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-                return Convert.ToBase64String(bytes);
-            }
-        }
+        
         private string GenerateJwtToken(User user)
         {
+            if (user == null || user.Id == "")
+            {
+                throw new ArgumentNullException(nameof(user), "User object is null or ID is missing.");
+            }
             var tokenHandler = new JwtSecurityTokenHandler();
             var secretKey = _configuration["Jwt:SecretKey"];
             var issuer = _configuration["Jwt:Issuer"];

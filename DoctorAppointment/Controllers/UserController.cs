@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DoctorAppointment.Controllers
 {
     [ApiController]
-    [Route("/api/user")]
+    [Route("api/user")]
     public class UserController:ControllerBase
     {
         private readonly IUserService _userService;
