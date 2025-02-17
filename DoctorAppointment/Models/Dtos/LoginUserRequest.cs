@@ -1,8 +1,11 @@
-﻿namespace DoctorAppointment.Models
+﻿namespace DoctorAppointment.Models.Dtos
 {
-    public class LoginRequest
+    public class LoginUserRequest
     {
         public string Email { get; set; }
         public string Password { get; set; }
     }
+
+    
+
 }

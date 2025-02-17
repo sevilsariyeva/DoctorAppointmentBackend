@@ -6,7 +6,7 @@ namespace DoctorAppointment.Models
     {
         public String Id { get; set; }
         [Required]
-        public String Name { get; set; }
+        public String FullName { get; set; }
 
         [Required]
         public String Email { get; set; }

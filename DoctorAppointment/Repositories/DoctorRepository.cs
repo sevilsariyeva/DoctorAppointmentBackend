@@ -10,13 +10,11 @@ namespace DoctorAppointment.Repositories
 {
     public class DoctorRepository : IDoctorRepository
     {
-        private readonly MongoDbService _mongoDbService;
         private readonly IMongoCollection<Doctor> _doctorsCollection;
 
         public DoctorRepository(MongoDbService mongoDbService)
         {
-            _mongoDbService = mongoDbService;
-            _doctorsCollection = _mongoDbService.GetCollection<Doctor>("doctors"); 
+            _doctorsCollection = mongoDbService.GetCollection<Doctor>("doctors"); 
         }
 
         public async Task<Doctor> AddDoctorAsync(Doctor doctor)

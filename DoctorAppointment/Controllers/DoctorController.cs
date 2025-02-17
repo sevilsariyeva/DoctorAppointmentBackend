@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DoctorAppointment.Controllers
 {
     [ApiController]
-    [Route("api/doctors")]
+    [Route("api/doctor")]
     public class DoctorController : ControllerBase
     {
         private readonly IDoctorService _doctorService;
@@ -38,6 +38,7 @@ namespace DoctorAppointment.Controllers
 
             return Ok(new { success = true, message = "Availability updated successfully" });
         }
+
 
 
     }
