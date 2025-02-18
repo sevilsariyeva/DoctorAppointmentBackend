@@ -32,5 +32,10 @@ namespace DoctorAppointment.Repositories
                 .Find(u => u.Email == email)
                 .FirstOrDefaultAsync();
         }
+        public async Task<User> GetUserByIdAsync(string userId)
+        {
+            return await _usersCollection.Find(u=>u.Id==userId).FirstOrDefaultAsync();
+        }
+
     }
 }

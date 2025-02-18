@@ -6,5 +6,6 @@ namespace DoctorAppointment.Repositories
     {
         Task<bool> AddUserAsync(User user);
         Task<User> GetUserByEmailAsync(string email);
+        Task<User> GetUserByIdAsync(string userId);
     }
 }

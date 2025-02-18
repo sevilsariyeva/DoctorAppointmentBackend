@@ -1,6 +1,8 @@
 ﻿using DoctorAppointment.Models.Dtos;
 using DoctorAppointment.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace DoctorAppointment.Controllers
 {
@@ -44,5 +46,31 @@ namespace DoctorAppointment.Controllers
 
             return Ok(result);
         }
+        [Authorize]
+        [HttpGet("profile")]
+        public async Task<IActionResult> GetProfile()
+        {
+            try
+            {
+                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(currentUserId))
+                {
+                    return Unauthorized("Invalid token.");
+                }
+
+                var response = await _userService.GetProfileAsync(currentUserId);
+                if (!response.Success)
+                {
+                    return BadRequest(response.Message);
+                }
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+            }
+        }
+
     }
 }

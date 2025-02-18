@@ -127,6 +127,32 @@ namespace DoctorAppointment.Services
             var token = GenerateJwtToken(user);
             return new LoginUserResponse { Success = true, Token = token, Message = "Login successful." };
         }
+        public async Task<GetProfileResponse> GetProfileAsync(string currentUserId)
+        {
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return new GetProfileResponse { Success = false, Message = "User ID is required." };
+            }
+
+            var user = await _userRepository.GetUserByIdAsync(currentUserId);
+            if (user == null)
+            {
+                return new GetProfileResponse { Success = false, Message = "User not found." };
+            }
+
+            return new GetProfileResponse
+            {
+                Success = true,
+                Message = "User profile retrieved successfully.",
+                FullName = user.FullName,
+                Email = user.Email,
+                ImageUrl = user.ImageUrl,
+                Address = user.Address,
+                Gender = user.Gender,
+                Dob = user.Dob,
+                Phone = user.Phone
+            };
+        }
 
 
     }

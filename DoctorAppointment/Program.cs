@@ -13,55 +13,65 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
-// MongoDB konfiqurasiyası
+// MongoDB configuration
 builder.Services.AddSingleton<IMongoClient>(sp =>
 {
     var connectionString = configuration.GetValue<string>("MongoDb:Uri");
     return new MongoClient(connectionString);
 });
 
-// Xidmətlərin DI konfiqurasiyası
+// Services DI configuration
 builder.Services.AddScoped<IPasswordHasher<Doctor>, PasswordHasher<Doctor>>();
 builder.Services.AddScoped<IPasswordHasher<Admin>, PasswordHasher<Admin>>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddSingleton<CloudinaryService>();
 builder.Services.AddSingleton<MongoDbService>();
-builder.Services.AddScoped<IAdminService,AdminService>();
-builder.Services.AddScoped<IDoctorService,DoctorService>();
-builder.Services.AddScoped<IUserService,UserService>();
-builder.Services.AddSingleton<IAdminRepository, AdminRepository>();
-builder.Services.AddSingleton<IDoctorRepository, DoctorRepository>();
-builder.Services.AddSingleton<IUserRepository, UserRepository>();
-
+builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<IDoctorService, DoctorService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IAdminRepository, AdminRepository>();
+builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();
+builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 var frontendUrl = configuration.GetValue<string>("frontend_url");
 var adminUrl = configuration.GetValue<string>("admin_url");
 
+// JWT Authentication Configuration
+var secretKey = Encoding.UTF8.GetBytes(configuration["Jwt:SecretKey"]);
+var issuer = configuration["Jwt:Issuer"];
+var audience = configuration["Jwt:Audience"];
+
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        options.RequireHttpsMetadata = true;
+        options.SaveToken = true;
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = false,
-            ValidateAudience = false,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(secretKey),
+            ValidateIssuer = true,
+            ValidIssuer = issuer,
+            ValidateAudience = true,
+            ValidAudience = audience,
             ValidateLifetime = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:SecretKey"]))
+            ClockSkew = TimeSpan.Zero
         };
     });
+
+
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("Admin", policy => policy.RequireClaim(ClaimTypes.Role, "Admin"));
 });
+
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowAll", builder =>
-        builder.AllowAnyOrigin()
-               .AllowAnyMethod()
-               .AllowAnyHeader());
+    options.AddPolicy("AllowAll", policy =>
+        policy.WithOrigins(frontendUrl, adminUrl)
+              .AllowAnyMethod()
+              .AllowAnyHeader());
 });
-
-
-
 
 builder.Services.AddControllersWithViews();
 
@@ -74,12 +84,12 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+app.UseStaticFiles(); // Statik faylları yükləmək üçün
 
 app.UseRouting();
 app.UseCors("AllowAll");
 
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllerRoute(
@@ -92,4 +102,5 @@ app.UseStaticFiles(new StaticFileOptions
         Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads")),
     RequestPath = "/uploads"
 });
+
 app.Run();
