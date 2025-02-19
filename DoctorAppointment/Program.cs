@@ -13,14 +13,12 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
-// MongoDB configuration
 builder.Services.AddSingleton<IMongoClient>(sp =>
 {
     var connectionString = configuration.GetValue<string>("MongoDb:Uri");
     return new MongoClient(connectionString);
 });
 
-// Services DI configuration
 builder.Services.AddScoped<IPasswordHasher<Doctor>, PasswordHasher<Doctor>>();
 builder.Services.AddScoped<IPasswordHasher<Admin>, PasswordHasher<Admin>>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
@@ -36,7 +34,6 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 var frontendUrl = configuration.GetValue<string>("frontend_url");
 var adminUrl = configuration.GetValue<string>("admin_url");
 
-// JWT Authentication Configuration
 var secretKey = Encoding.UTF8.GetBytes(configuration["Jwt:SecretKey"]);
 var issuer = configuration["Jwt:Issuer"];
 var audience = configuration["Jwt:Audience"];
@@ -84,7 +81,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles(); // Statik faylları yükləmək üçün
+app.UseStaticFiles();
 
 app.UseRouting();
 app.UseCors("AllowAll");

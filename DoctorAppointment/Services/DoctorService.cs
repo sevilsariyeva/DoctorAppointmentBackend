@@ -28,7 +28,7 @@ public class DoctorService : IDoctorService
         {
             var extension = Path.GetExtension(image.FileName).ToLower();
             if (extension != ".jpg" && extension != ".jpeg" && extension != ".png")
-                throw new ArgumentException("Şəkil formatı etibarlı deyil. Yalnız .jpg, .jpeg və .png formatlarını dəstəkləyirik.");
+                throw new ArgumentException("Invalid image format. Only support .jpg, .jpeg və .png formats.");
 
             fileName = Guid.NewGuid().ToString() + extension;
 
