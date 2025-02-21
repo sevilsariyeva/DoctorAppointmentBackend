@@ -8,5 +8,6 @@ namespace DoctorAppointment.Services
         Task<RegisterUserResponse> RegisterUserAsync(RegisterUserRequest request);
         Task<LoginUserResponse> LoginUserAsync(LoginUserRequest request);
         Task<GetProfileResponse> GetProfileAsync(string currentUserId);
+        Task<UpdateUserResponse> UpdateUserAsync(string userId, UpdateUserRequest request);
     }
 }

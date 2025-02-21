@@ -18,8 +18,10 @@ namespace DoctorAppointment.Models
         [Required]
         public String Password { get; set; }
         public String ImageUrl { get; set; }
-        public Object Address { get; set; }
+        public Address Address { get; set; }
         public String Gender { get; set; }
+        [DataType(DataType.Date)]
+        [BsonDateTimeOptions(Kind = DateTimeKind.Utc)]
         public DateTime Dob { get; set; }
         public String Phone { get; set; }
     }

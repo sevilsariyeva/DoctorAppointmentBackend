@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 
 namespace DoctorAppointment.Services
 {
@@ -153,7 +154,82 @@ namespace DoctorAppointment.Services
                 Phone = user.Phone
             };
         }
+        public async Task<UpdateUserResponse> UpdateUserAsync(string userId, [FromForm] UpdateUserRequest request)
+        {
+            var user = await _userRepository.GetUserByIdAsync(userId);
+            if (user == null)
+                return new UpdateUserResponse { Success = false, Message = "User not found." };
 
+            bool hasChanges = false;
+
+            if (request.FullName != null && request.FullName != user.FullName)
+            {
+                user.FullName = request.FullName;
+                hasChanges = true;
+            }
+
+            if (request.Image != null)
+            {
+                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", Guid.NewGuid().ToString() + Path.GetExtension(request.Image.FileName));
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await request.Image.CopyToAsync(stream);
+                }
+
+                user.ImageUrl = "/uploads/" + Path.GetFileName(filePath);
+                hasChanges = true;
+            }
+
+            if (request.Address != null)
+            {
+                if (user.Address == null)
+                {
+                    user.Address = new Address();
+                }
+
+                if (request.Address.Line1 != null && request.Address.Line1 != user.Address.Line1)
+                {
+                    user.Address.Line1 = request.Address.Line1;
+                    hasChanges = true;
+                }
+
+                if (request.Address.Line2 != null && request.Address.Line2 != user.Address.Line2)
+                {
+                    user.Address.Line2 = request.Address.Line2;
+                    hasChanges = true;
+                }
+            }
+
+            if (request.Gender != null && request.Gender != user.Gender)
+            {
+                user.Gender = request.Gender;
+                hasChanges = true;
+            }
+
+            if (request.Dob.HasValue && request.Dob.Value != user.Dob)
+            {
+                user.Dob = request.Dob.Value;
+                hasChanges = true;
+            }
+
+            if (request.Phone != null && request.Phone != user.Phone)
+            {
+                user.Phone = request.Phone;
+                hasChanges = true;
+            }
+
+            if (!hasChanges)
+            {
+                return new UpdateUserResponse { Success = true, Message = "No changes detected." };
+            }
+
+            var result = await _userRepository.UpdateUserAsync(user);
+            if (!result)
+                return new UpdateUserResponse { Success = false, Message = "User update failed." };
+
+            return new UpdateUserResponse { Success = true, Message = "User updated successfully." };
+        }
 
     }
 }

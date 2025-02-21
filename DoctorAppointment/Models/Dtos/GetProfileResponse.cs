@@ -1,4 +1,6 @@
-﻿namespace DoctorAppointment.Models.Dtos
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace DoctorAppointment.Models.Dtos
 {
     public class GetProfileResponse
     {

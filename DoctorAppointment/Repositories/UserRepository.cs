@@ -36,6 +36,34 @@ namespace DoctorAppointment.Repositories
         {
             return await _usersCollection.Find(u=>u.Id==userId).FirstOrDefaultAsync();
         }
+        public async Task<bool> UpdateUserAsync(User user)
+        {
+            try
+            {
+                var filter = Builders<User>.Filter.Eq(u => u.Id, user.Id);
+
+                var updateDefinition = Builders<User>.Update;
+                var updates = new List<UpdateDefinition<User>>();
+
+                if (user.FullName != null) updates.Add(updateDefinition.Set(u => u.FullName, user.FullName));
+                if (user.ImageUrl != null) updates.Add(updateDefinition.Set(u => u.ImageUrl, user.ImageUrl));
+                if (user.Address != null) updates.Add(updateDefinition.Set(u => u.Address, user.Address));
+                if (user.Gender != null) updates.Add(updateDefinition.Set(u => u.Gender, user.Gender));
+                if (user.Dob != default(DateTime)) updates.Add(updateDefinition.Set(u => u.Dob, user.Dob));
+                if (user.Phone != null) updates.Add(updateDefinition.Set(u => u.Phone, user.Phone));
+
+                if (updates.Count == 0) return true;
+
+                var update = updateDefinition.Combine(updates);
+                var result = await _usersCollection.UpdateOneAsync(filter, update);
+                return result.ModifiedCount > 0;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
 
     }
 }
