@@ -15,13 +15,15 @@ namespace DoctorAppointment.Services
     public class UserService:IUserService
     {
         private readonly IUserRepository _userRepository;
+        private readonly IDoctorRepository _doctorRepository;
         private readonly IConfiguration _configuration;
         private readonly IPasswordHasher<User> _passwordHasher;
-        public UserService(IUserRepository userRepository,IPasswordHasher<User> passwordHasher,IConfiguration configuration)
+        public UserService(IUserRepository userRepository,IDoctorRepository doctorRepository,IPasswordHasher<User> passwordHasher,IConfiguration configuration)
         {
             _userRepository = userRepository;
             _passwordHasher = passwordHasher;
             _configuration = configuration;
+            _doctorRepository = doctorRepository;
         }
 
         public async Task<RegisterUserResponse> RegisterUserAsync(RegisterUserRequest request)
@@ -145,6 +147,7 @@ namespace DoctorAppointment.Services
             {
                 Success = true,
                 Message = "User profile retrieved successfully.",
+                Id=user.Id,
                 FullName = user.FullName,
                 Email = user.Email,
                 ImageUrl = user.ImageUrl,
@@ -231,5 +234,48 @@ namespace DoctorAppointment.Services
             return new UpdateUserResponse { Success = true, Message = "User updated successfully." };
         }
 
+        public async Task<BookAppointmentResponse> BookAppointmentAsync(string userId, string docId, string slotDate, string slotTime)
+        {
+            var doctor = await _doctorRepository.GetDoctorByIdAsync(docId);
+            if (doctor == null || !doctor.Available)
+            {
+                return new BookAppointmentResponse { Success = false, Message = "Doctor not available" };
+            }
+
+            var slotsBooked = doctor.SlotsBooked;
+            if (slotsBooked.ContainsKey(slotDate))
+            {
+                if (slotsBooked[slotDate].Contains(slotTime))
+                {
+                    return new BookAppointmentResponse { Success = false, Message = "Slot not available" };
+                }
+                else
+                {
+                    slotsBooked[slotDate].Add(slotTime);
+                }
+            }
+            else
+            {
+                slotsBooked[slotDate] = new List<string> { slotTime };
+            }
+
+            var user = await _userRepository.GetUserByIdAsync(userId);
+            var appointment = new Appointment
+            {
+                UserId = userId,
+                DocId = docId,
+                UserData = user,
+                DocData = doctor,
+                Amount = doctor.Fees,
+                SlotTime = slotTime,
+                SlotDate = slotDate,
+                Date = DateTime.UtcNow
+            };
+
+            await _userRepository.AddAppointmentAsync(appointment);
+            await _doctorRepository.UpdateDoctorAsync(doctor);
+
+            return new BookAppointmentResponse { Success = true, Message = "Appointment booked successfully" };
+        }
     }
 }

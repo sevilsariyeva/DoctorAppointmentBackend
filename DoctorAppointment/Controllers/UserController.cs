@@ -98,5 +98,15 @@ namespace DoctorAppointment.Controllers
             }
         }
 
+        [HttpPost("book-appointment")]
+        public async Task<IActionResult> BookAppointment([FromBody] BookAppointmentRequest request)
+        {
+            var response = await _userService.BookAppointmentAsync(request.UserId, request.DocId, request.SlotDate, request.SlotTime);
+            if (response.Success)
+            {
+                return Ok(response);
+            }
+            return BadRequest(response);
+        }
     }
 }

@@ -4,6 +4,7 @@ namespace DoctorAppointment.Models.Dtos
 {
     public class GetProfileResponse
     {
+        public string Id { get; set; }
         public bool Success { get; set; }
         public string Message { get; set; }
         public string FullName { get; set; }

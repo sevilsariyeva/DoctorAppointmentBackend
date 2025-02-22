@@ -31,6 +31,8 @@ namespace DoctorAppointment.Services
         }
         public IMongoCollection<User> GetUsersCollection() =>
             _database.GetCollection<User>("users");
+        public IMongoCollection<Appointment> GetAppointmentsCollection() =>
+            _database.GetCollection<Appointment>("appointments");
         public IMongoCollection<T> GetCollection<T>(string collectionName)
         {
             return _database.GetCollection<T>(collectionName);

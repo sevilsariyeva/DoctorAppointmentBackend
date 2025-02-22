@@ -9,7 +9,7 @@ namespace DoctorAppointment.Models
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
-        public ObjectId Id { get; set; }
+        public string? Id { get; set; }
 
         [Required]
         [BsonElement("name")]
@@ -51,7 +51,10 @@ namespace DoctorAppointment.Models
 
         [BsonElement("available")]
         public bool Available { get; set; }
+        [BsonElement("slotsBooked")]
+        public Dictionary<string, List<string>> SlotsBooked { get; set; } = new Dictionary<string, List<string>>();
+
     }
 
-    
+
 }

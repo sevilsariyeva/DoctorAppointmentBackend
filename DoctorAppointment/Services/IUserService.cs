@@ -1,4 +1,5 @@
-﻿using DoctorAppointment.Models.Dtos;
+﻿using DoctorAppointment.Models;
+using DoctorAppointment.Models.Dtos;
 using System.Security.Claims;
 
 namespace DoctorAppointment.Services
@@ -9,5 +10,6 @@ namespace DoctorAppointment.Services
         Task<LoginUserResponse> LoginUserAsync(LoginUserRequest request);
         Task<GetProfileResponse> GetProfileAsync(string currentUserId);
         Task<UpdateUserResponse> UpdateUserAsync(string userId, UpdateUserRequest request);
+        Task<BookAppointmentResponse> BookAppointmentAsync(string userId, string docId, string slotDate, string slotTime);
     }
 }

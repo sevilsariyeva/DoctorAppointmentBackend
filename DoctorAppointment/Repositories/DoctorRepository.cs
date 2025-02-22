@@ -44,9 +44,8 @@ namespace DoctorAppointment.Repositories
         }
         public async Task<Doctor> GetDoctorByIdAsync(string doctorId)
         {
-            var objectId = ObjectId.Parse(doctorId);
 
-            var filter = Builders<Doctor>.Filter.Eq(d => d.Id, objectId);
+            var filter = Builders<Doctor>.Filter.Eq(d => d.Id, doctorId);
 
             return await _doctorsCollection.Find(filter).FirstOrDefaultAsync();
         }

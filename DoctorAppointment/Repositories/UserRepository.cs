@@ -8,9 +8,11 @@ namespace DoctorAppointment.Repositories
     public class UserRepository:IUserRepository
     {
         private readonly IMongoCollection<User> _usersCollection;
+        private readonly IMongoCollection<Appointment> _appointmentsCollection;
         public UserRepository(MongoDbService mongoDbService)
         {
             _usersCollection = mongoDbService.GetUsersCollection();
+            _appointmentsCollection = mongoDbService.GetAppointmentsCollection();
         }
 
         public async Task<bool> AddUserAsync(User user)
@@ -63,7 +65,10 @@ namespace DoctorAppointment.Repositories
                 return false;
             }
         }
-
+        public async Task AddAppointmentAsync(Appointment appointment)
+        {
+            await _appointmentsCollection.InsertOneAsync(appointment);
+        }
 
     }
 }
