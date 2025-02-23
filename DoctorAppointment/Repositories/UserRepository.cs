@@ -69,6 +69,43 @@ namespace DoctorAppointment.Repositories
         {
             await _appointmentsCollection.InsertOneAsync(appointment);
         }
+        public async Task<List<Appointment>> GetUserAppointmentsAsync(string userId)
+        {
+            return await _appointmentsCollection
+     .Find(a => a.UserId == userId)
+     .SortByDescending(a => a.SlotDate)
+     .ThenByDescending(a => a.SlotTime)
+     .ToListAsync();
+
+        }
+        public async Task<Appointment> GetAppointmentByIdAsync(string appointmentId)
+        {
+            return await _appointmentsCollection
+                .Find(a => a.Id == appointmentId)
+                .FirstOrDefaultAsync(); 
+        }
+
+        public async Task<bool> CancelAppointmentAsync(string userId, string appointmentId)
+        {
+            var appointment = await _appointmentsCollection
+                .Find(a => a.Id == appointmentId && a.UserId == userId)
+                .FirstOrDefaultAsync();
+
+            if (appointment == null)
+            {
+                return false; 
+            }
+
+            var update = Builders<Appointment>.Update.Set(a => a.Cancelled, true);
+
+            var result = await _appointmentsCollection.UpdateOneAsync(
+                a => a.Id == appointmentId && a.UserId == userId,
+                update);
+
+            return result.ModifiedCount > 0;
+        }
+
+
 
     }
 }

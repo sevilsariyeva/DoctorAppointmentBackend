@@ -108,5 +108,57 @@ namespace DoctorAppointment.Controllers
             }
             return BadRequest(response);
         }
+        [Authorize]
+        [HttpGet("appointments")]
+        public async Task<IActionResult> GetUserAppointments()
+        {
+            try
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized("Invalid token.");
+                }
+
+                var response = await _userService.GetUserAppointmentsAsync(userId);
+                if (!response.Success)
+                {
+                    return BadRequest(response.Message);
+                }
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+            }
+        }
+
+        [Authorize]
+        [HttpDelete("cancel-appointment/{appointmentId}")]
+        public async Task<IActionResult> CancelAppointment(string appointmentId)
+        {
+            try
+            {
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized("Invalid token.");
+                }
+
+                var result = await _userService.CancelAppointmentAsync(userId, appointmentId);
+                if (!result.Success)
+                {
+                    return BadRequest(result.Message);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+            }
+        }
+
     }
 }

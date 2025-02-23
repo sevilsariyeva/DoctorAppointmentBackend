@@ -9,5 +9,8 @@ namespace DoctorAppointment.Repositories
         Task<User> GetUserByIdAsync(string userId);
         Task<bool> UpdateUserAsync(User user);
         Task AddAppointmentAsync(Appointment appointment);
+        Task<List<Appointment>> GetUserAppointmentsAsync(string userId);
+        Task<Appointment> GetAppointmentByIdAsync(string appointmentId);
+        Task<bool> CancelAppointmentAsync(string userId, string appointmentId);
     }
 }
