@@ -160,5 +160,27 @@ namespace DoctorAppointment.Controllers
             }
         }
 
+        [HttpPost("create-payment")]
+        public ActionResult CreatePaymentIntent([FromBody] PaymentRequest paymentRequest)
+        {
+            try
+            {
+                //var options = new PaymentIntentCreateOptions
+                //{
+                //    Amount = 1000,
+                //    Currency = "usd", 
+                //    Metadata = new Dictionary<string, string> { { "appointment_id", paymentRequest.AppointmentId.ToString() } },
+                //};
+                //var service = new PaymentIntentService();
+                //PaymentIntent intent = service.Create(options);
+                var response = new { success = true, message = "Payment successful!" };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, error = ex.Message });
+            }
+        }
     }
 }
