@@ -72,7 +72,7 @@ public class DoctorService : IDoctorService
     }
     public async Task<bool> ChangeAvailabilityAsync(string doctorId)
     {
-        if (string.IsNullOrEmpty(doctorId) || !ValidateDoctorId(doctorId))
+        if (string.IsNullOrEmpty(doctorId))
         {
             return false;
         }
@@ -112,8 +112,5 @@ public class DoctorService : IDoctorService
             Address2=d.Address2,
         }).ToList();
     }
-    private bool ValidateDoctorId(string doctorId)
-    {
-        return ObjectId.TryParse(doctorId, out _);
-    }
+    
 }

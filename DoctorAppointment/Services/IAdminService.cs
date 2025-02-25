@@ -6,5 +6,6 @@ namespace DoctorAppointment.Services
     public interface IAdminService
     {
         Task<string> LoginAdmin(string email, string password);
+        Task<Doctor> AddDoctorAsync(DoctorDto doctorDto, IFormFile image);
     }
 }

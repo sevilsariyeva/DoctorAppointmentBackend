@@ -38,8 +38,13 @@ namespace DoctorAppointment.Controllers
                 return StatusCode(500, new { success = false, message = ex.Message });
             }
         }
+        [HttpPost("add-doctor")]
+        public async Task<IActionResult> AddDoctor([FromForm] DoctorDto doctorDto, [FromForm] IFormFile image)
+        {
+            await _adminService.AddDoctorAsync(doctorDto, image);
+            return Ok(new { success = true, message = "Doctor added successfully" });
+        }
 
-        [Authorize]
         [HttpGet("appointments")]
         public async Task<IActionResult> GetAllAppointments()
         {
@@ -60,7 +65,6 @@ namespace DoctorAppointment.Controllers
             }
         }
 
-        [Authorize]
         [HttpDelete("cancel-appointment/{appointmentId}")]
         public async Task<IActionResult> CancelAppointment(string appointmentId)
         {
@@ -69,22 +73,23 @@ namespace DoctorAppointment.Controllers
                 var userId = await _appointmentService.GetUserIdByAppointmentIdAsync(appointmentId);
                 if (string.IsNullOrEmpty(userId))
                 {
-                    return NotFound("User not found for the given appointment.");
+                    return NotFound(new { success = false, message = "User not found for the given appointment." });
                 }
 
                 var result = await _appointmentService.CancelAppointmentAsync(userId, appointmentId);
                 if (!result.Success)
                 {
-                    return BadRequest(result.Message);
+                    return BadRequest(new { success = false, message = result.Message });
                 }
 
-                return Ok(result.Message);
+                return Ok(new { success = true, message = "Appointment cancelled successfully" });
             }
             catch (Exception ex)
             {
-                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+                return StatusCode(500, new { success = false, message = $"Internal Server Error: {ex.Message}" });
             }
         }
+
 
 
     }

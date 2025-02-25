@@ -8,7 +8,6 @@ namespace DoctorAppointment.Models
     public class Doctor
     {
         [BsonId]
-        [BsonRepresentation(BsonType.ObjectId)]
         public string? Id { get; set; }
 
         [Required]

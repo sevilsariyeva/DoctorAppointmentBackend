@@ -148,7 +148,7 @@ namespace DoctorAppointment.Controllers
                 {
                     return Unauthorized("Invalid token.");
                 }
-
+              
                 var result = await _appointmentService.CancelAppointmentAsync(userId, appointmentId);
                 if (!result.Success)
                 {
@@ -163,52 +163,44 @@ namespace DoctorAppointment.Controllers
             }
         }
 
-        [HttpGet("doctor/{appointmentId}")]
-        public async Task<IActionResult> GetDoctorByAppointmentIdAsync(string appointmentId)
-        {
-            try
-            {
-                var doctor = await _appointmentService.GetDoctorByAppointmentIdAsync(appointmentId);
-
-                if (doctor == null)
-                {
-                    return NotFound(new { success = false, message = "Doctor not found" });
-                }
-
-                return Ok(new { success = true, doctor });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { success = false, error = ex.Message });
-            }
-        }
-
-
 
         [HttpPost("create-payment")]
         public async Task<IActionResult> CreatePaymentIntent([FromBody] PaymentRequest paymentRequest)
         {
             try
             {
-                var response = new { success = true, message = "Payment successful!" };
-
                 var appointment = await _appointmentService.GetAppointmentByIdAsync(paymentRequest.AppointmentId);
                 if (appointment == null)
                 {
                     return NotFound(new { success = false, message = "Appointment not found." });
                 }
 
-                appointment.Amount = paymentRequest.Amount;
+                var doctor = await _appointmentService.GetDoctorByAppointmentIdAsync(paymentRequest.AppointmentId);
+                if (doctor == null || doctor.Fees == null)
+                {
+                    return BadRequest(new { success = false, message = "Doctor's fees are not available." });
+                }
 
+                paymentRequest.Payment = doctor.Fees;
+
+                var paymentSuccess = true; 
+
+                if (!paymentSuccess)
+                {
+                    return BadRequest(new { success = false, message = "Payment failed. Please try again." });
+                }
+
+                appointment.Payment = paymentRequest.Payment;
                 await _appointmentService.UpdateAppointmentAsync(appointment);
 
-                return Ok(response);
+                return Ok(new { success = true, message = "Payment successful!" });
             }
             catch (Exception ex)
             {
                 return BadRequest(new { success = false, error = ex.Message });
             }
         }
+
 
 
     }

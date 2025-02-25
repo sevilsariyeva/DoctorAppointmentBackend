@@ -2,6 +2,7 @@
 using DoctorAppointment.Models;
 using DoctorAppointment.Services;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 
 namespace DoctorAppointment.Repositories
 {
@@ -9,6 +10,7 @@ namespace DoctorAppointment.Repositories
     {
         private readonly IMongoCollection<Admin> _adminCollection;
         private readonly IMongoCollection<Appointment> _appointmentCollection;
+        private readonly IMongoCollection<Doctor> _doctorCollection;
         private readonly MongoDbService _mongoDbService;
 
         public AdminRepository(MongoDbService mongoDbService)
@@ -16,12 +18,34 @@ namespace DoctorAppointment.Repositories
             _mongoDbService = mongoDbService;
             _adminCollection = mongoDbService.GetDatabase().GetCollection<Admin>("admins");
             _appointmentCollection = mongoDbService.GetDatabase().GetCollection<Appointment>("appointments");
+            _doctorCollection = mongoDbService.GetDatabase().GetCollection<Doctor>("doctors");
         }
 
         public async Task<Admin> GetAdminByEmailAsync(string email)
         {
             return await _adminCollection.Find(admin => admin.Email == email).FirstOrDefaultAsync();
         }
+        public async Task<Doctor> GetDoctorByEmailAsync(string email)
+        {
+            return await _doctorCollection.Find(d => d.Email == email).FirstOrDefaultAsync();
+        }
+
+        public async Task<Doctor> AddDoctorAsync(Doctor doctor)
+        {
+            try
+            {
+                Console.WriteLine($"Inserting doctor: {JsonConvert.SerializeObject(doctor)}");
+
+                await _doctorCollection.InsertOneAsync(doctor);
+                return doctor;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error inserting doctor: {ex.Message}");
+                throw;
+            }
+        }
+
 
         public async Task<List<Appointment>> GetAllAppointmentsAsync()
         {

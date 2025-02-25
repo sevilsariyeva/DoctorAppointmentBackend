@@ -47,7 +47,15 @@ namespace DoctorAppointment.Repositories
                 return false;
             }
 
-            var update = Builders<Appointment>.Update.Set(a => a.Cancelled, true);
+            var doctor = await _doctorRepository.GetDoctorByIdAsync(appointment.DocId);
+            if (doctor != null)
+            {
+                appointment.Payment -= doctor.Fees;
+            }
+
+            var update = Builders<Appointment>.Update
+                .Set(a => a.Cancelled, true)
+                .Set(a => a.Payment, appointment.Payment); 
 
             var result = await _appointmentsCollection.UpdateOneAsync(
                 a => a.Id == appointmentId && a.UserId == userId,
@@ -55,6 +63,7 @@ namespace DoctorAppointment.Repositories
 
             return result.ModifiedCount > 0;
         }
+
         public async Task<List<Appointment>> GetAllAppointmentsAsync()
         {
             try

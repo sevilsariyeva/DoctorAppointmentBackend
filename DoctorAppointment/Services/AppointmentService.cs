@@ -43,7 +43,7 @@ namespace DoctorAppointment.Services
                 DocId = docId,
                 UserData = user,
                 DocData = doctor,
-                Amount = 0,
+                Amount = doctor.Fees,
                 SlotTime = slotTime,
                 SlotDate = slotDate,
                 Date = DateTime.UtcNow
@@ -109,6 +109,10 @@ namespace DoctorAppointment.Services
             var doctor = await _doctorRepository.GetDoctorByIdAsync(appointment.DocId);
             doctor?.SlotsBooked[appointment.SlotDate]?.Remove(appointment.SlotTime);
 
+            if (appointment != null && appointment.Payment != null && doctor != null)
+            {
+                appointment.Payment -= doctor.Fees;
+            }
             var result = await _userRepository.CancelAppointmentAsync(userId, appointmentId);
             if (!result)
             {
@@ -116,6 +120,7 @@ namespace DoctorAppointment.Services
             }
 
             await _doctorRepository.UpdateDoctorAsync(doctor);
+            await _appointmentRepository.UpdateAppointmentAsync(appointment);
             return true;
         }
         public async Task<bool> UpdateAppointmentAsync(Appointment appointment)
