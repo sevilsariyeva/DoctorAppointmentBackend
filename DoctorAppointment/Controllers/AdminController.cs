@@ -1,9 +1,11 @@
 ﻿using DoctorAppointment.Models;
 using DoctorAppointment.Models.Dtos;
 using DoctorAppointment.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace DoctorAppointment.Controllers
 {
@@ -12,9 +14,11 @@ namespace DoctorAppointment.Controllers
     public class AdminController:ControllerBase
     {
         private readonly IAdminService _adminService;
-        public AdminController(IAdminService adminService)
+        private readonly IAppointmentService _appointmentService;
+        public AdminController(IAdminService adminService,IAppointmentService appointmentService)
         {
             _adminService = adminService;
+            _appointmentService = appointmentService;
         }
 
         [HttpPost("login")]
@@ -35,12 +39,13 @@ namespace DoctorAppointment.Controllers
             }
         }
 
+        [Authorize]
         [HttpGet("appointments")]
         public async Task<IActionResult> GetAllAppointments()
         {
             try
             {
-                var response = await _adminService.GetUserAppointmentsAsync();
+                var response = await _appointmentService.GetUserAppointmentsAsync();
 
                 if (!response.Success)
                 {
@@ -55,6 +60,31 @@ namespace DoctorAppointment.Controllers
             }
         }
 
+        [Authorize]
+        [HttpDelete("cancel-appointment/{appointmentId}")]
+        public async Task<IActionResult> CancelAppointment(string appointmentId)
+        {
+            try
+            {
+                var userId = await _appointmentService.GetUserIdByAppointmentIdAsync(appointmentId);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return NotFound("User not found for the given appointment.");
+                }
+
+                var result = await _appointmentService.CancelAppointmentAsync(userId, appointmentId);
+                if (!result.Success)
+                {
+                    return BadRequest(result.Message);
+                }
+
+                return Ok(result.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+            }
+        }
 
 
     }

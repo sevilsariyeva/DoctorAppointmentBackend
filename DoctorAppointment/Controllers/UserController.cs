@@ -1,4 +1,5 @@
-﻿using DoctorAppointment.Models.Dtos;
+﻿using DoctorAppointment.Models;
+using DoctorAppointment.Models.Dtos;
 using DoctorAppointment.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +12,12 @@ namespace DoctorAppointment.Controllers
     public class UserController:ControllerBase
     {
         private readonly IUserService _userService;
+        private readonly IAppointmentService _appointmentService;
 
-        public UserController(IUserService userService)
+        public UserController(IUserService userService,IAppointmentService appointmentService)
         {
             _userService = userService;
+            _appointmentService = appointmentService;
         }
         [HttpPost("register")]
         public async Task<IActionResult> RegisterUser([FromBody] RegisterUserRequest request)
@@ -101,7 +104,7 @@ namespace DoctorAppointment.Controllers
         [HttpPost("book-appointment")]
         public async Task<IActionResult> BookAppointment([FromBody] BookAppointmentRequest request)
         {
-            var response = await _userService.BookAppointmentAsync(request.UserId, request.DocId, request.SlotDate, request.SlotTime);
+            var response = await _appointmentService.BookAppointmentAsync(request.UserId, request.DocId, request.SlotDate, request.SlotTime);
             if (response.Success)
             {
                 return Ok(response);
@@ -120,7 +123,7 @@ namespace DoctorAppointment.Controllers
                     return Unauthorized("Invalid token.");
                 }
 
-                var response = await _userService.GetUserAppointmentsAsync(userId);
+                var response = await _appointmentService.GetUserAppointmentsAsync(userId);
                 if (!response.Success)
                 {
                     return BadRequest(response.Message);
@@ -146,7 +149,7 @@ namespace DoctorAppointment.Controllers
                     return Unauthorized("Invalid token.");
                 }
 
-                var result = await _userService.CancelAppointmentAsync(userId, appointmentId);
+                var result = await _appointmentService.CancelAppointmentAsync(userId, appointmentId);
                 if (!result.Success)
                 {
                     return BadRequest(result.Message);
@@ -160,20 +163,44 @@ namespace DoctorAppointment.Controllers
             }
         }
 
-        [HttpPost("create-payment")]
-        public ActionResult CreatePaymentIntent([FromBody] PaymentRequest paymentRequest)
+        [HttpGet("doctor/{appointmentId}")]
+        public async Task<IActionResult> GetDoctorByAppointmentIdAsync(string appointmentId)
         {
             try
             {
-                //var options = new PaymentIntentCreateOptions
-                //{
-                //    Amount = 1000,
-                //    Currency = "usd", 
-                //    Metadata = new Dictionary<string, string> { { "appointment_id", paymentRequest.AppointmentId.ToString() } },
-                //};
-                //var service = new PaymentIntentService();
-                //PaymentIntent intent = service.Create(options);
+                var doctor = await _appointmentService.GetDoctorByAppointmentIdAsync(appointmentId);
+
+                if (doctor == null)
+                {
+                    return NotFound(new { success = false, message = "Doctor not found" });
+                }
+
+                return Ok(new { success = true, doctor });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, error = ex.Message });
+            }
+        }
+
+
+
+        [HttpPost("create-payment")]
+        public async Task<IActionResult> CreatePaymentIntent([FromBody] PaymentRequest paymentRequest)
+        {
+            try
+            {
                 var response = new { success = true, message = "Payment successful!" };
+
+                var appointment = await _appointmentService.GetAppointmentByIdAsync(paymentRequest.AppointmentId);
+                if (appointment == null)
+                {
+                    return NotFound(new { success = false, message = "Appointment not found." });
+                }
+
+                appointment.Amount = paymentRequest.Amount;
+
+                await _appointmentService.UpdateAppointmentAsync(appointment);
 
                 return Ok(response);
             }
@@ -182,5 +209,7 @@ namespace DoctorAppointment.Controllers
                 return BadRequest(new { success = false, error = ex.Message });
             }
         }
+
+
     }
 }

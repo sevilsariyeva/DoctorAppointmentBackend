@@ -66,24 +66,5 @@ namespace DoctorAppointment.Services
         }
 
 
-        public async Task<ServiceResponse<List<Appointment>>> GetUserAppointmentsAsync()
-        {
-            try
-            {
-                var appointments = await _adminRepository.GetAllAppointmentsAsync();
-
-                if (appointments == null || appointments.Count == 0)
-                {
-                    return new ServiceResponse<List<Appointment>>(null, "No appointments found.", false);
-                }
-
-                return new ServiceResponse<List<Appointment>>(appointments, "Appointments retrieved successfully.", true);
-            }
-            catch (Exception ex)
-            {
-                return new ServiceResponse<List<Appointment>>(null, $"Error occurred: {ex.Message}", false);
-            }
-        }
-
     }
 }
