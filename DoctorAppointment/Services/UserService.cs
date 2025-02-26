@@ -9,6 +9,9 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity.Data;
+using System.Security.Authentication;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace DoctorAppointment.Services
 {
@@ -65,73 +68,21 @@ namespace DoctorAppointment.Services
 
             return new RegisterUserResponse { Success = true, Message = "User registered successfully.", Token = token };
         }
-        private bool IsValidEmail(string email)
-        {
-            var emailRegex = new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$");
-            return emailRegex.IsMatch(email);
-        }
-
-        private bool IsStrongPassword(string password)
-        {
-            return password.Length >= 8 &&
-                   password.Any(char.IsUpper) &&
-                   password.Any(char.IsLower) &&
-                   password.Any(char.IsDigit);
-        }
+      
         
-        private string GenerateJwtToken(User user)
-        {
-            if (user == null || user.Id == "")
-            {
-                throw new ArgumentNullException(nameof(user), "User object is null or ID is missing.");
-            }
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var secretKey = _configuration["Jwt:SecretKey"];
-            var issuer = _configuration["Jwt:Issuer"];
-            var audience = _configuration["Jwt:Audience"];
-            var expiryMinutes = _configuration.GetValue<int>("Jwt:ExpiryMinutes");
-
-            if (string.IsNullOrEmpty(secretKey))
-            {
-                throw new InvalidOperationException("JWT SecretKey is not configured.");
-            }
-
-            var key = Encoding.UTF8.GetBytes(secretKey);
-
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[]
-                {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Name, user.FullName),
-            new Claim(ClaimTypes.Role, "User")
-        }),
-                Expires = DateTime.UtcNow.AddMinutes(expiryMinutes),
-                Issuer = issuer,
-                Audience = audience,
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
-
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
-        }
-        public async Task<LoginUserResponse> LoginUserAsync(LoginUserRequest request)
+      
+        public async Task<string> LoginUserAsync(LoginRequest request)
         {
             var user = await _userRepository.GetUserByEmailAsync(request.Email);
-            if (user == null)
-            {
-                return new LoginUserResponse { Success = false, Message = "Invalid email or password." };
-            }
 
             var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.Password, request.Password);
-            if (verificationResult == PasswordVerificationResult.Failed)
+            if (user == null || verificationResult == PasswordVerificationResult.Failed)
             {
-                return new LoginUserResponse { Success = false, Message = "Invalid email or password." };
+                throw new InvalidCredentialException("Invalid email or password." );
             }
 
             var token = GenerateJwtToken(user);
-            return new LoginUserResponse { Success = true, Token = token, Message = "Login successful." };
+            return token;
         }
         public async Task<GetProfileResponse> GetProfileAsync(string currentUserId)
         {
@@ -236,8 +187,56 @@ namespace DoctorAppointment.Services
 
             return new UpdateUserResponse { Success = true, Message = "User updated successfully." };
         }
+        private string GenerateJwtToken(User user)
+        {
+            if (user == null || user.Id == "")
+            {
+                throw new ArgumentNullException(nameof(user), "User object is null or ID is missing.");
+            }
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var secretKey = _configuration["Jwt:SecretKey"];
+            var issuer = _configuration["Jwt:Issuer"];
+            var audience = _configuration["Jwt:Audience"];
+            var expiryMinutes = _configuration.GetValue<int>("Jwt:ExpiryMinutes");
 
+            if (string.IsNullOrEmpty(secretKey))
+            {
+                throw new InvalidOperationException("JWT SecretKey is not configured.");
+            }
 
+            var key = Encoding.UTF8.GetBytes(secretKey);
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[]
+                {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Name, user.FullName),
+            new Claim(ClaimTypes.Role, "User")
+        }),
+                Expires = DateTime.UtcNow.AddMinutes(expiryMinutes),
+                Issuer = issuer,
+                Audience = audience,
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            };
+
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
+        }
+        private bool IsValidEmail(string email)
+        {
+            var emailRegex = new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$");
+            return emailRegex.IsMatch(email);
+        }
+
+        private bool IsStrongPassword(string password)
+        {
+            return password.Length >= 8 &&
+                   password.Any(char.IsUpper) &&
+                   password.Any(char.IsLower) &&
+                   password.Any(char.IsDigit);
+        }
 
     }
 }

@@ -6,8 +6,8 @@ namespace DoctorAppointment.Services
 {
     public interface IDoctorService
     {
-        Task<Doctor> AddDoctorAsync(DoctorDto doctorDto, IFormFile image);
         Task<List<DoctorDto>> GetAllDoctorsAsync();
         Task<bool> ChangeAvailabilityAsync(string doctorId);
+        Task<string> LoginDoctor(string email, string password);
     }
 }

@@ -5,9 +5,9 @@ namespace DoctorAppointment.Repositories
 {
     public interface IDoctorRepository
     {
-        Task<Doctor> AddDoctorAsync(Doctor doctor);
         Task<List<DoctorDto>> GetAllDoctorsAsync();
         Task<Doctor> GetDoctorByIdAsync(string doctorId);
+        Task<Doctor> GetDoctorByEmailAsync(string email);
         Task UpdateDoctorAsync(Doctor doctor);
     }
 }

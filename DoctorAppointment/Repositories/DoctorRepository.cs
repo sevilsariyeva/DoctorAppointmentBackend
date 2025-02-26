@@ -49,7 +49,10 @@ namespace DoctorAppointment.Repositories
 
             return await _doctorsCollection.Find(filter).FirstOrDefaultAsync();
         }
-
+        public async Task<Doctor> GetDoctorByEmailAsync(string email)
+        {
+            return await _doctorsCollection.Find(doctor => doctor.Email == email).FirstOrDefaultAsync();
+        }
         public async Task UpdateDoctorAsync(Doctor doctor)
         {
             var filter = Builders<Doctor>.Filter.Eq(d => d.Id, doctor.Id);

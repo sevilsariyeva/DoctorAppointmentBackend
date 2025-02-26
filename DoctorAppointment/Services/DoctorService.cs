@@ -5,71 +5,29 @@ using DoctorAppointment.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using MongoDB.Bson;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using System.Security.Authentication;
 
 public class DoctorService : IDoctorService
 {
     private readonly IDoctorRepository _doctorRepository;
     private readonly IWebHostEnvironment _environment;
     private readonly IPasswordHasher<Doctor> _passwordHasher;
+    private readonly IConfiguration _configuration;
 
-    public DoctorService(IDoctorRepository doctorRepository, IWebHostEnvironment environment, IPasswordHasher<Doctor> passwordHasher)
+    public DoctorService(IDoctorRepository doctorRepository, IWebHostEnvironment environment, IPasswordHasher<Doctor> passwordHasher, IConfiguration configuration)
     {
         _doctorRepository = doctorRepository;
         _environment = environment;
         _passwordHasher = passwordHasher;
+        _configuration = configuration;
     }
 
 
-    public async Task<Doctor> AddDoctorAsync(DoctorDto doctorDto, IFormFile image)
-    {
-        string fileName = null;
-
-        if (image != null && image.Length > 0)
-        {
-            var extension = Path.GetExtension(image.FileName).ToLower();
-            if (extension != ".jpg" && extension != ".jpeg" && extension != ".png")
-                throw new ArgumentException("Invalid image format. Only support .jpg, .jpeg və .png formats.");
-
-            fileName = Guid.NewGuid().ToString() + extension;
-
-            var uploadsDirectory = Path.Combine(_environment.WebRootPath, "uploads");
-
-            if (!Directory.Exists(uploadsDirectory))
-            {
-                Directory.CreateDirectory(uploadsDirectory);
-            }
-
-            var filePath = Path.Combine(uploadsDirectory, fileName);
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await image.CopyToAsync(stream);
-            }
-        }
-
-        var doctor = new Doctor
-        {
-            Name = doctorDto.Name,
-            Email = doctorDto.Email,
-            Password = doctorDto.Password,
-            Speciality = doctorDto.Speciality,
-            Image = fileName != null ? "/uploads/" + fileName : null,
-            Degree = doctorDto.Degree,
-            Experience = doctorDto.Experience,
-            Fees = doctorDto.Fees,
-            About = doctorDto.About,
-            Address = new Address
-            {
-                Line1 = doctorDto.Address1,
-                Line2 = doctorDto.Address2
-            }
-        };
-        var hashedPassword = _passwordHasher.HashPassword(doctor, doctorDto.Password);
-        doctor.Password = hashedPassword;
-        await _doctorRepository.AddDoctorAsync(doctor);
-
-        return doctor;
-    }
     public async Task<bool> ChangeAvailabilityAsync(string doctorId)
     {
         if (string.IsNullOrEmpty(doctorId))
@@ -89,7 +47,18 @@ public class DoctorService : IDoctorService
         return true;
     }
 
+    public async Task<string> LoginDoctor(string email, string password)
+    {
+        var doctor = await _doctorRepository.GetDoctorByEmailAsync(email);
+        var verificationResult = _passwordHasher.VerifyHashedPassword(doctor, doctor.Password, password);
+        if (doctor==null || verificationResult == PasswordVerificationResult.Failed)
+        {
+            throw new InvalidCredentialException("Invalid email or password.");
+        }
 
+        var token = GenerateJwtToken(doctor);
+        return token;
+    }
 
     public async Task<List<DoctorDto>> GetAllDoctorsAsync()
     {
@@ -112,5 +81,32 @@ public class DoctorService : IDoctorService
             Address2=d.Address2,
         }).ToList();
     }
-    
+    private string GenerateJwtToken(Doctor doctor)
+    {
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var secretKey = _configuration["Jwt:SecretKey"];
+        var expiryMinutes = _configuration.GetValue<int>("Jwt:ExpiryMinutes");
+
+        if (string.IsNullOrEmpty(secretKey))
+        {
+            throw new InvalidOperationException("JWT SecretKey is not configured.");
+        }
+
+        var key = Encoding.UTF8.GetBytes(secretKey);
+
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(new Claim[]
+            {
+                    new Claim(ClaimTypes.NameIdentifier, doctor.Id),
+                    new Claim(ClaimTypes.Email, doctor.Email),
+                    new Claim(ClaimTypes.Role, "Doctor")
+            }),
+            Expires = DateTime.UtcNow.AddMinutes(expiryMinutes),
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        };
+
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+        return tokenHandler.WriteToken(token);
+    }
 }

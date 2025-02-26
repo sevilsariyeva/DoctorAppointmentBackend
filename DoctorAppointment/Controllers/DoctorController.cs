@@ -1,5 +1,6 @@
 ﻿using DoctorAppointment.Models.Dtos;
 using DoctorAppointment.Services;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DoctorAppointment.Controllers
@@ -15,12 +16,6 @@ namespace DoctorAppointment.Controllers
             _doctorService = doctorService;
         }
 
-        [HttpPost("add-doctor")]
-        public async Task<IActionResult> AddDoctor([FromForm] DoctorDto doctorDto, [FromForm] IFormFile image)
-        {
-            await _doctorService.AddDoctorAsync(doctorDto, image);
-            return Ok(new { success = true, message = "Doctor added successfully" });
-        }
         [HttpGet("all-doctors")]
         public async Task<IActionResult> GetAllDoctors()
         {
@@ -40,6 +35,23 @@ namespace DoctorAppointment.Controllers
         }
 
 
+        [HttpPost("login")]
+        public async Task<IActionResult> LoginDoctor([FromBody] LoginRequest request)
+        {
+            try
+            {
+                var token = await _doctorService.LoginDoctor(request.Email, request.Password);
+                return Ok(new { success = true, token });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new { success = false, message = "Invalid credentials" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
 
     }
 
