@@ -2,6 +2,7 @@
 using DoctorAppointment.Models.Dtos;
 using DoctorAppointment.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -34,20 +35,26 @@ namespace DoctorAppointment.Controllers
             return Ok(result);
         }
         [HttpPost("login")]
-        public async Task<IActionResult> LoginUser([FromBody] LoginUserRequest request)
+        public async Task<IActionResult> LoginUser([FromBody] LoginRequest request)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
-
-            var result = await _userService.LoginUserAsync(request);
-            if (!result.Success)
+            try
             {
-                return Unauthorized(result.Message);
+                var token = await _userService.LoginUserAsync(request);
+                return Ok(new { success = true, token });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Unauthorized(new { success = false, message = "Invalid credentials" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { success = false, message = ex.Message });
             }
 
-            return Ok(result);
         }
         [Authorize]
         [HttpGet("profile")]
@@ -139,7 +146,7 @@ namespace DoctorAppointment.Controllers
 
         [Authorize]
         [HttpDelete("cancel-appointment/{appointmentId}")]
-        public async Task<IActionResult> CancelAppointment(string appointmentId)
+        public async Task<IActionResult> CancelAppointment(CancelAppointmentRequest request)
         {
             try
             {
@@ -149,10 +156,10 @@ namespace DoctorAppointment.Controllers
                     return Unauthorized("Invalid token.");
                 }
               
-                var result = await _appointmentService.CancelAppointmentAsync(userId, appointmentId);
-                if (!result.Success)
+                var result = await _appointmentService.CancelAppointmentAsync(userId, request.AppointmentId);
+                if (!result)
                 {
-                    return BadRequest(result.Message);
+                    throw new Exception("Failed to cancel!");
                 }
 
                 return Ok(result);
@@ -200,7 +207,6 @@ namespace DoctorAppointment.Controllers
                 return BadRequest(new { success = false, error = ex.Message });
             }
         }
-
 
 
     }

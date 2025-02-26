@@ -66,20 +66,20 @@ namespace DoctorAppointment.Controllers
         }
 
         [HttpDelete("cancel-appointment/{appointmentId}")]
-        public async Task<IActionResult> CancelAppointment(string appointmentId)
+        public async Task<IActionResult> CancelAppointment(CancelAppointmentRequest request)
         {
             try
             {
-                var userId = await _appointmentService.GetUserIdByAppointmentIdAsync(appointmentId);
+                var userId = await _appointmentService.GetUserIdByAppointmentIdAsync(request.AppointmentId);
                 if (string.IsNullOrEmpty(userId))
                 {
-                    return NotFound(new { success = false, message = "User not found for the given appointment." });
+                    throw new Exception("User not found for the given appointment.");
                 }
 
-                var result = await _appointmentService.CancelAppointmentAsync(userId, appointmentId);
-                if (!result.Success)
+                var result = await _appointmentService.CancelAppointmentAdminAsync(userId, request.AppointmentId);
+                if (!result)
                 {
-                    return BadRequest(new { success = false, message = result.Message });
+                    throw new Exception( "Failed to cancel!");
                 }
 
                 return Ok(new { success = true, message = "Appointment cancelled successfully" });

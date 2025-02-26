@@ -1,5 +1,6 @@
 ﻿using DoctorAppointment.Models;
 using DoctorAppointment.Models.Dtos;
+using Microsoft.AspNetCore.Identity.Data;
 using System.Security.Claims;
 
 namespace DoctorAppointment.Services
@@ -7,7 +8,7 @@ namespace DoctorAppointment.Services
     public interface IUserService
     {
         Task<RegisterUserResponse> RegisterUserAsync(RegisterUserRequest request);
-        Task<LoginUserResponse> LoginUserAsync(LoginUserRequest request);
+        Task<string> LoginUserAsync(LoginRequest request);
         Task<GetProfileResponse> GetProfileAsync(string currentUserId);
         Task<UpdateUserResponse> UpdateUserAsync(string userId, UpdateUserRequest request);
         

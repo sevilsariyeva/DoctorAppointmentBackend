@@ -23,9 +23,9 @@ namespace DoctorAppointment.Controllers
             return Ok(doctors);
         }
         [HttpPut("change-availability/{doctorId}")]
-        public async Task<IActionResult> ChangeAvailability(string doctorId)
+        public async Task<IActionResult> ChangeAvailability(ChangeAvailabilityRequest request)
         {
-            var success = await _doctorService.ChangeAvailabilityAsync(doctorId);
+            var success = await _doctorService.ChangeAvailabilityAsync(request.DoctorId);
             if (!success)
             {
                 return NotFound(new { success = false, message = "Doctor not found" });

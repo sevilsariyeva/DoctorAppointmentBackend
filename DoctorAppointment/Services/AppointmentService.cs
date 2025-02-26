@@ -64,7 +64,7 @@ namespace DoctorAppointment.Services
                 : new GetUserAppointmentsResponse { Success = false, Message = "No appointments found." };
         }
 
-        public async Task CancelAppointmentAsync(string userId, string appointmentId)
+        public async Task<bool> CancelAppointmentAsync(string userId, string appointmentId)
         {
             var appointment = await _userRepository.GetAppointmentByIdAsync(appointmentId);
             if (appointment == null)
@@ -87,6 +87,7 @@ namespace DoctorAppointment.Services
             }
 
             await _doctorRepository.UpdateDoctorAsync(doctor);
+            return result;
         }
 
 
