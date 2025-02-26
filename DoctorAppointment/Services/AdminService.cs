@@ -96,6 +96,7 @@ namespace DoctorAppointment.Services
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             var secretKey = _configuration["Jwt:SecretKey"];
+            var expiryMinutes = _configuration.GetValue<int>("Jwt:ExpiryMinutes");
 
             if (string.IsNullOrEmpty(secretKey))
             {
@@ -112,7 +113,7 @@ namespace DoctorAppointment.Services
                     new Claim(ClaimTypes.Email, admin.Email),
                     new Claim(ClaimTypes.Role, "Admin")  
                 }),
-                Expires = DateTime.UtcNow.AddHours(1),
+                Expires = DateTime.UtcNow.AddMinutes(expiryMinutes),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
 

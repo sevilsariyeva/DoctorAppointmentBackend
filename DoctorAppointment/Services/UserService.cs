@@ -49,7 +49,9 @@ namespace DoctorAppointment.Services
             {
                 FullName = request.FullName,
                 Email = request.Email,
+                ImageUrl="/uploads/upload_area.png"
             };
+           
             var hashedPassword = _passwordHasher.HashPassword(newUser, request.Password);
             newUser.Password = hashedPassword;
 
@@ -87,6 +89,7 @@ namespace DoctorAppointment.Services
             var secretKey = _configuration["Jwt:SecretKey"];
             var issuer = _configuration["Jwt:Issuer"];
             var audience = _configuration["Jwt:Audience"];
+            var expiryMinutes = _configuration.GetValue<int>("Jwt:ExpiryMinutes");
 
             if (string.IsNullOrEmpty(secretKey))
             {
@@ -104,7 +107,7 @@ namespace DoctorAppointment.Services
             new Claim(ClaimTypes.Name, user.FullName),
             new Claim(ClaimTypes.Role, "User")
         }),
-                Expires = DateTime.UtcNow.AddHours(1),
+                Expires = DateTime.UtcNow.AddMinutes(expiryMinutes),
                 Issuer = issuer,
                 Audience = audience,
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
