@@ -1,6 +1,7 @@
 ﻿using DoctorAppointment.Models.Dtos;
 using DoctorAppointment.Models;
 using DoctorAppointment.Repositories;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace DoctorAppointment.Services
 {
@@ -63,12 +64,17 @@ namespace DoctorAppointment.Services
                 : new GetUserAppointmentsResponse { Success = false, Message = "No appointments found." };
         }
 
-        public async Task<CancelAppointmentResponse> CancelAppointmentAsync(string userId, string appointmentId)
+        public async Task CancelAppointmentAsync(string userId, string appointmentId)
         {
             var appointment = await _userRepository.GetAppointmentByIdAsync(appointmentId);
-            if (appointment == null || appointment.UserId != userId)
+            if (appointment == null)
             {
-                return new CancelAppointmentResponse { Success = false, Message = "Appointment not found or unauthorized." };
+                throw new Exception("Appointment Not Found");
+            }
+
+            if (appointment.UserId != userId)
+            {
+                throw new UnauthorizedAccessException("Unauthorized.");
             }
 
             var doctor = await _doctorRepository.GetDoctorByIdAsync(appointment.DocId);
@@ -77,12 +83,12 @@ namespace DoctorAppointment.Services
             var result = await _userRepository.CancelAppointmentAsync(userId, appointmentId);
             if (!result)
             {
-                return new CancelAppointmentResponse { Success = false, Message = "Failed to cancel the appointment." };
+                throw new Exception("Failed to cancel the appointment.");
             }
 
             await _doctorRepository.UpdateDoctorAsync(doctor);
-            return new CancelAppointmentResponse { Success = true, Message = "Appointment canceled successfully." };
         }
+
 
         //{----------Admin----------}
         public async Task<ServiceResponse<List<Appointment>>> GetUserAppointmentsAsync()
