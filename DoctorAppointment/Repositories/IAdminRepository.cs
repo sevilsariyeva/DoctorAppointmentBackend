@@ -8,5 +8,9 @@ namespace DoctorAppointment.Repositories
         Task<Doctor> GetDoctorByEmailAsync(string email);
         Task<List<Appointment>> GetAllAppointmentsAsync();
         Task<Doctor> AddDoctorAsync(Doctor doctor);
+        Task<int> GetDoctorsCountAsync();
+        Task<int> GetAppointmentsCountAsync();
+        Task<int> GetPatientsCountAsync();
+        Task<List<Appointment>> GetLatestAppointmentsAsync(int count);
     }
 }

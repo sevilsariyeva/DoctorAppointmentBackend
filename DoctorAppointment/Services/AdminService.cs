@@ -27,7 +27,6 @@ namespace DoctorAppointment.Services
             _environment = environment;
             _doctorpasswordHasher = doctorpasswordHasher;
         }
-
         public async Task<string> LoginAdmin(string email, string password)
         {
             var admin = await _adminRepository.GetAdminByEmailAsync(email);  
@@ -119,6 +118,26 @@ namespace DoctorAppointment.Services
 
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
+        }
+
+        public async Task<int> GetDoctorsCountAsync()
+        {
+            return await _adminRepository.GetDoctorsCountAsync();
+        }
+
+        public async Task<int> GetAppointmentsCountAsync()
+        {
+            return await _adminRepository.GetAppointmentsCountAsync();
+        }
+
+        public async Task<int> GetPatientsCountAsync()
+        {
+            return await _adminRepository.GetPatientsCountAsync();
+        }
+
+        public async Task<List<Appointment>> GetLatestAppointmentsAsync(int count)
+        {
+            return await _adminRepository.GetLatestAppointmentsAsync(count);
         }
 
 

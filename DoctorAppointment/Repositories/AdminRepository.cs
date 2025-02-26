@@ -60,6 +60,31 @@ namespace DoctorAppointment.Repositories
                 throw new Exception($"An error occurred while fetching appointments: {ex.Message}");
             }
         }
+        public async Task<int> GetDoctorsCountAsync()
+        {
+            return (int)await _doctorCollection.CountDocumentsAsync(_ => true);
+        }
+
+        public async Task<int> GetAppointmentsCountAsync()
+        {
+            return (int)await _appointmentCollection.CountDocumentsAsync(_ => true);
+        }
+
+        public async Task<int> GetPatientsCountAsync()
+        {
+            var usersCollection = _mongoDbService.GetDatabase().GetCollection<User>("users");
+            return (int)await usersCollection.CountDocumentsAsync(_ => true);
+        }
+
+        public async Task<List<Appointment>> GetLatestAppointmentsAsync(int count)
+        {
+            return await _appointmentCollection
+                .Find(_ => true)
+                .SortByDescending(a => a.Date)
+                .Limit(count)
+                .ToListAsync();
+        }
+
 
     }
 }
