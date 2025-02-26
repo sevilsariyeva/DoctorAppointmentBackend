@@ -26,7 +26,7 @@ namespace DoctorAppointment.Controllers
         {
             try
             {
-                var token = await _adminService.LoginAdmin(request.Email, request.Password);
+                var token = await _adminService.LoginAdmin(request);
                 return Ok(new { success = true, token });
             }
             catch (UnauthorizedAccessException)
@@ -93,31 +93,8 @@ namespace DoctorAppointment.Controllers
         [HttpGet("dashboard")]
         public async Task<IActionResult> GetDashboardData()
         {
-            try
-            {
-                var doctorsCount = await _adminService.GetDoctorsCountAsync();
-                var appointmentsCount = await _adminService.GetAppointmentsCountAsync();
-                var patientsCount = await _adminService.GetPatientsCountAsync();
-                var latestAppointments = await _adminService.GetLatestAppointmentsAsync(5);
-
-                var response = new
-                {
-                    success = true,
-                    dashData = new
-                    {
-                        doctors = doctorsCount,
-                        appointments = appointmentsCount,
-                        patients = patientsCount,
-                        latestAppointments = latestAppointments
-                    }
-                };
-
-                return Ok(response);
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { success = false, message = $"Internal Server Error: {ex.Message}" });
-            }
+                var statistics = await _adminService.GetAdminDashboardStatisticsAsync(5);
+                return Ok(statistics);
         }
 
     }

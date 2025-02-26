@@ -8,6 +8,8 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity;
 using DoctorAppointment.Models.Dtos;
+using Microsoft.AspNetCore.Identity.Data;
+using DoctorAppointment.Utilities;
 
 namespace DoctorAppointment.Services
 {
@@ -27,53 +29,35 @@ namespace DoctorAppointment.Services
             _environment = environment;
             _doctorpasswordHasher = doctorpasswordHasher;
         }
-        public async Task<string> LoginAdmin(string email, string password)
+        public async Task<string> LoginAdmin(LoginRequest request)
         {
-            var admin = await _adminRepository.GetAdminByEmailAsync(email);  
+            var admin = await _adminRepository.GetAdminByEmailAsync(request.Email);
 
-            if (admin == null || admin.Password != password)
+            if (admin == null || admin.Password != request.Password)
             {
                 throw new UnauthorizedAccessException("Invalid credentials");
             }
 
-            var token = GenerateJwtToken(admin);
-            return token;
+            return JwtTokenGenerator.GenerateToken(admin.Id.ToString(), admin.Email, "Admin", _configuration);
         }
         public async Task<Doctor> AddDoctorAsync(DoctorDto doctorDto, IFormFile image)
         {
-            string fileName = null;
+            var doctor = MapToDoctorEntity(doctorDto);
+            doctor.Image = await SaveImageAsync(image);
+            doctor.Password = _doctorpasswordHasher.HashPassword(doctor, doctorDto.Password);
 
-            if (image != null && image.Length > 0)
+            await _adminRepository.AddDoctorAsync(doctor);
+            return doctor;
+        }
+
+        private Doctor MapToDoctorEntity(DoctorDto doctorDto)
+        {
+            return new Doctor
             {
-                var extension = Path.GetExtension(image.FileName).ToLower();
-                if (extension != ".jpg" && extension != ".jpeg" && extension != ".png")
-                    throw new ArgumentException("Invalid image format. Only support .jpg, .jpeg və .png formats.");
-
-                fileName = Guid.NewGuid().ToString() + extension;
-
-                var uploadsDirectory = Path.Combine(_environment.WebRootPath, "uploads");
-
-                if (!Directory.Exists(uploadsDirectory))
-                {
-                    Directory.CreateDirectory(uploadsDirectory);
-                }
-
-                var filePath = Path.Combine(uploadsDirectory, fileName);
-
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await image.CopyToAsync(stream);
-                }
-            }
-
-            var doctor = new Doctor
-            {
-                Id= Guid.NewGuid().ToString(),
+                Id = Guid.NewGuid().ToString(),
                 Name = doctorDto.Name,
                 Email = doctorDto.Email,
-                Password = doctorDto.Password,
                 Speciality = doctorDto.Speciality,
-                Image = fileName != null ? "/uploads/" + fileName : null,
                 Degree = doctorDto.Degree,
                 Experience = doctorDto.Experience,
                 Fees = doctorDto.Fees,
@@ -84,60 +68,97 @@ namespace DoctorAppointment.Services
                     Line2 = doctorDto.Address2
                 }
             };
-            var hashedPassword = _doctorpasswordHasher.HashPassword(doctor, doctorDto.Password);
-            doctor.Password = hashedPassword;
-            await _adminRepository.AddDoctorAsync(doctor);
-
-            return doctor;
         }
 
-        private string GenerateJwtToken(Admin admin)
+        private async Task<string> SaveImageAsync(IFormFile image)
         {
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var secretKey = _configuration["Jwt:SecretKey"];
-            var expiryMinutes = _configuration.GetValue<int>("Jwt:ExpiryMinutes");
+            if (image == null || image.Length == 0) return null;
 
-            if (string.IsNullOrEmpty(secretKey))
+            var extension = Path.GetExtension(image.FileName).ToLower();
+            var allowedExtensions = new HashSet<string> { ".jpg", ".jpeg", ".png" };
+
+            if (!allowedExtensions.Contains(extension))
+                throw new ArgumentException("Invalid image format. Only .jpg, .jpeg, and .png are supported.");
+
+            var fileName = $"{Guid.NewGuid()}{extension}";
+            var uploadsDirectory = Path.Combine(_environment.WebRootPath, "uploads");
+
+            Directory.CreateDirectory(uploadsDirectory); 
+
+            var filePath = Path.Combine(uploadsDirectory, fileName);
+
+            using (var stream = new FileStream(filePath, FileMode.Create))
             {
-                throw new InvalidOperationException("JWT SecretKey is not configured.");
+                await image.CopyToAsync(stream);
             }
 
-            var key = Encoding.UTF8.GetBytes(secretKey);
+            return $"/uploads/{fileName}";
+        }
 
-            var tokenDescriptor = new SecurityTokenDescriptor
+        //public async Task<Doctor> AddDoctorAsync(DoctorDto doctorDto, IFormFile image)
+        //{
+        //    string fileName = null;
+
+        //    if (image != null && image.Length > 0)
+        //    {
+        //        var extension = Path.GetExtension(image.FileName).ToLower();
+        //        if (extension != ".jpg" && extension != ".jpeg" && extension != ".png")
+        //            throw new ArgumentException("Invalid image format. Only support .jpg, .jpeg və .png formats.");
+
+        //        fileName = Guid.NewGuid().ToString() + extension;
+
+        //        var uploadsDirectory = Path.Combine(_environment.WebRootPath, "uploads");
+
+        //        if (!Directory.Exists(uploadsDirectory))
+        //        {
+        //            Directory.CreateDirectory(uploadsDirectory);
+        //        }
+
+        //        var filePath = Path.Combine(uploadsDirectory, fileName);
+
+        //        using (var stream = new FileStream(filePath, FileMode.Create))
+        //        {
+        //            await image.CopyToAsync(stream);
+        //        }
+        //    }
+
+        //    var doctor = new Doctor
+        //    {
+        //        Id= Guid.NewGuid().ToString(),
+        //        Name = doctorDto.Name,
+        //        Email = doctorDto.Email,
+        //        Password = doctorDto.Password,
+        //        Speciality = doctorDto.Speciality,
+        //        Image = fileName != null ? "/uploads/" + fileName : null,
+        //        Degree = doctorDto.Degree,
+        //        Experience = doctorDto.Experience,
+        //        Fees = doctorDto.Fees,
+        //        About = doctorDto.About,
+        //        Address = new Address
+        //        {
+        //            Line1 = doctorDto.Address1,
+        //            Line2 = doctorDto.Address2
+        //        }
+        //    };
+        //    var hashedPassword = _doctorpasswordHasher.HashPassword(doctor, doctorDto.Password);
+        //    doctor.Password = hashedPassword;
+        //    await _adminRepository.AddDoctorAsync(doctor);
+
+        //    return doctor;
+        //}
+
+
+        public async Task<AdminDashboardDto> GetAdminDashboardStatisticsAsync(int latestAppointmentsCount)
+        {
+            var statistics = new AdminDashboardDto
             {
-                Subject = new ClaimsIdentity(new Claim[]
-                {
-                    new Claim(ClaimTypes.NameIdentifier, admin.Id.ToString()),
-                    new Claim(ClaimTypes.Email, admin.Email),
-                    new Claim(ClaimTypes.Role, "Admin")  
-                }),
-                Expires = DateTime.UtcNow.AddMinutes(expiryMinutes),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                Doctors = await _adminRepository.GetDoctorsCountAsync(),
+                Appointments = await _adminRepository.GetAppointmentsCountAsync(),
+                Patients = await _adminRepository.GetPatientsCountAsync(),
+                LatestAppointments = await _adminRepository.GetLatestAppointmentsAsync(latestAppointmentsCount)
             };
 
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
-        }
-
-        public async Task<int> GetDoctorsCountAsync()
-        {
-            return await _adminRepository.GetDoctorsCountAsync();
-        }
-
-        public async Task<int> GetAppointmentsCountAsync()
-        {
-            return await _adminRepository.GetAppointmentsCountAsync();
-        }
-
-        public async Task<int> GetPatientsCountAsync()
-        {
-            return await _adminRepository.GetPatientsCountAsync();
-        }
-
-        public async Task<List<Appointment>> GetLatestAppointmentsAsync(int count)
-        {
-            return await _adminRepository.GetLatestAppointmentsAsync(count);
+            return statistics;
         }
 
 

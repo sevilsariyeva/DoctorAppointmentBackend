@@ -49,37 +49,29 @@ namespace DoctorAppointment.Repositories
 
         public async Task<List<Appointment>> GetAllAppointmentsAsync()
         {
-            try
-            {
-                var appointments = await _appointmentCollection.Find(_ => true).ToListAsync();
-
-                return appointments;
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"An error occurred while fetching appointments: {ex.Message}");
-            }
+            return await _appointmentCollection.Find(_ => true).ToListAsync();
         }
-        public async Task<int> GetDoctorsCountAsync()
+
+        public async Task<long> GetDoctorsCountAsync()
         {
-            return (int)await _doctorCollection.CountDocumentsAsync(_ => true);
+            return await _doctorCollection.CountDocumentsAsync(FilterDefinition<Doctor>.Empty);
         }
 
-        public async Task<int> GetAppointmentsCountAsync()
+        public async Task<long> GetAppointmentsCountAsync()
         {
-            return (int)await _appointmentCollection.CountDocumentsAsync(_ => true);
+            return await _appointmentCollection.CountDocumentsAsync(FilterDefinition<Appointment>.Empty);
         }
 
-        public async Task<int> GetPatientsCountAsync()
+        public async Task<long> GetPatientsCountAsync()
         {
             var usersCollection = _mongoDbService.GetDatabase().GetCollection<User>("users");
-            return (int)await usersCollection.CountDocumentsAsync(_ => true);
+            return await usersCollection.CountDocumentsAsync(FilterDefinition<User>.Empty);
         }
 
         public async Task<List<Appointment>> GetLatestAppointmentsAsync(int count)
         {
             return await _appointmentCollection
-                .Find(_ => true)
+                .Find(FilterDefinition<Appointment>.Empty)
                 .SortByDescending(a => a.Date)
                 .Limit(count)
                 .ToListAsync();

@@ -5,12 +5,12 @@ namespace DoctorAppointment.Repositories
     public interface IAdminRepository
     {
         Task<Admin> GetAdminByEmailAsync(string email);
+        Task<Doctor> AddDoctorAsync(Doctor doctor);
         Task<Doctor> GetDoctorByEmailAsync(string email);
         Task<List<Appointment>> GetAllAppointmentsAsync();
-        Task<Doctor> AddDoctorAsync(Doctor doctor);
-        Task<int> GetDoctorsCountAsync();
-        Task<int> GetAppointmentsCountAsync();
-        Task<int> GetPatientsCountAsync();
+        Task<long> GetDoctorsCountAsync();
+        Task<long> GetAppointmentsCountAsync();
+        Task<long> GetPatientsCountAsync();
         Task<List<Appointment>> GetLatestAppointmentsAsync(int count);
     }
 }
