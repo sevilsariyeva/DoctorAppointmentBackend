@@ -150,15 +150,13 @@ namespace DoctorAppointment.Services
 
         public async Task<AdminDashboardDto> GetAdminDashboardStatisticsAsync(int latestAppointmentsCount)
         {
-            var statistics = new AdminDashboardDto
+            return new AdminDashboardDto
             {
                 Doctors = await _adminRepository.GetDoctorsCountAsync(),
                 Appointments = await _adminRepository.GetAppointmentsCountAsync(),
                 Patients = await _adminRepository.GetPatientsCountAsync(),
                 LatestAppointments = await _adminRepository.GetLatestAppointmentsAsync(latestAppointmentsCount)
             };
-
-            return statistics;
         }
 
 

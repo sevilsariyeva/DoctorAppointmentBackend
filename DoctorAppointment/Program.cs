@@ -32,7 +32,11 @@ builder.Services.AddScoped<IAdminRepository, AdminRepository>();
 builder.Services.AddScoped<IDoctorRepository, DoctorRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAppointmentRepository, AppointmentRepository>();
-
+builder.Services.AddSingleton<MongoClient>(sp =>
+{
+    var connectionString = configuration.GetValue<string>("MongoDb:Uri");
+    return new MongoClient(connectionString);
+});
 var frontendUrl = configuration.GetValue<string>("frontend_url");
 var adminUrl = configuration.GetValue<string>("admin_url");
 

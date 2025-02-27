@@ -37,25 +37,20 @@ namespace DoctorAppointment.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> LoginUser([FromBody] LoginRequest request)
         {
-            if (!ModelState.IsValid)
+            if (request == null || string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
             {
-                return BadRequest(ModelState);
+                return BadRequest(new { success = false, message = "Email and password are required." });
             }
-            try
-            {
-                var token = await _userService.LoginUserAsync(request);
-                return Ok(new { success = true, token });
-            }
-            catch (UnauthorizedAccessException)
+
+            var token = await _userService.LoginUserAsync(request);
+            if (string.IsNullOrEmpty(token))
             {
                 return Unauthorized(new { success = false, message = "Invalid credentials" });
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { success = false, message = ex.Message });
-            }
 
+            return Ok(new { success = true, token });
         }
+
         [Authorize]
         [HttpGet("profile")]
         public async Task<IActionResult> GetProfile()
@@ -86,25 +81,25 @@ namespace DoctorAppointment.Controllers
         [HttpPut("update-profile")]
         public async Task<IActionResult> UpdateProfile([FromForm] UpdateUserRequest request)
         {
+            var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(currentUserId))
+            {
+                return Unauthorized(new { success = false, message = "Invalid token." });
+            }
+
             try
             {
-                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (string.IsNullOrEmpty(currentUserId))
-                {
-                    return Unauthorized("Invalid token.");
-                }
-
                 var result = await _userService.UpdateUserAsync(currentUserId, request);
                 if (!result.Success)
                 {
-                    return BadRequest(result.Message);
+                    return BadRequest(new { success = false, message = result.Message });
                 }
 
-                return Ok(result);
+                return Ok(new { success = true, message = "Profile updated successfully.", data = result });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+                return StatusCode(500, new { success = false, message = "An unexpected error occurred. Please try again later." });
             }
         }
 
@@ -148,28 +143,27 @@ namespace DoctorAppointment.Controllers
         [HttpDelete("cancel-appointment/{appointmentId}")]
         public async Task<IActionResult> CancelAppointment(CancelAppointmentRequest request)
         {
+            request.UserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(request.UserId))
+            {
+                return Unauthorized(new { success = false, message = "Invalid token." });
+            }
+
             try
             {
-                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-                if (string.IsNullOrEmpty(userId))
-                {
-                    return Unauthorized("Invalid token.");
-                }
-              
-                var result = await _appointmentService.CancelAppointmentAsync(userId, request.AppointmentId);
+                var result = await _appointmentService.CancelAppointmentAsync(request, false);
                 if (!result)
                 {
-                    throw new Exception("Failed to cancel!");
+                    return BadRequest(new { success = false, message = "Failed to cancel the appointment. Please try again later." });
                 }
 
-                return Ok(result);
+                return Ok(new { success = true, message = "Appointment canceled successfully." });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return StatusCode(500, $"Internal Server Error: {ex.Message}");
+                return StatusCode(500, new { success = false, message = "An unexpected error occurred. Please try again later." });
             }
         }
-
 
         [HttpPost("create-payment")]
         public async Task<IActionResult> CreatePaymentIntent([FromBody] PaymentRequest paymentRequest)
@@ -183,7 +177,7 @@ namespace DoctorAppointment.Controllers
                 }
 
                 var doctor = await _appointmentService.GetDoctorByAppointmentIdAsync(paymentRequest.AppointmentId);
-                if (doctor == null || doctor.Fees == null)
+                if (doctor?.Fees == null)
                 {
                     return BadRequest(new { success = false, message = "Doctor's fees are not available." });
                 }
@@ -202,12 +196,11 @@ namespace DoctorAppointment.Controllers
 
                 return Ok(new { success = true, message = "Payment successful!" });
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                return BadRequest(new { success = false, error = ex.Message });
+                return StatusCode(500, new { success = false, message = "An unexpected error occurred. Please try again later." });
             }
         }
-
 
     }
 }

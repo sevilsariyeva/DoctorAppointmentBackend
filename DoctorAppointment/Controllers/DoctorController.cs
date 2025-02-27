@@ -22,35 +22,46 @@ namespace DoctorAppointment.Controllers
             var doctors = await _doctorService.GetAllDoctorsAsync();
             return Ok(doctors);
         }
-        [HttpPut("change-availability/{doctorId}")]
-        public async Task<IActionResult> ChangeAvailability(ChangeAvailabilityRequest request)
+        [HttpPut("change-availability")]
+        public async Task<IActionResult> ChangeAvailability([FromBody] ChangeAvailabilityRequest request)
         {
-            var success = await _doctorService.ChangeAvailabilityAsync(request.DoctorId);
-            if (!success)
+            if (request == null || string.IsNullOrEmpty(request.DoctorId))
             {
-                return NotFound(new { success = false, message = "Doctor not found" });
+                return BadRequest(new { success = false, message = "Invalid request data" });
             }
 
-            return Ok(new { success = true, message = "Availability updated successfully" });
+            try
+            {
+                var success = await _doctorService.ChangeAvailabilityAsync(request.DoctorId);
+                if (!success)
+                {
+                    return NotFound(new { success = false, message = "Doctor not found" });
+                }
+
+                return Ok(new { success = true, message = "Availability updated successfully" });
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new { success = false, message = "An unexpected error occurred. Please try again later." });
+            }
         }
 
 
         [HttpPost("login")]
         public async Task<IActionResult> LoginDoctor([FromBody] LoginRequest request)
         {
-            try
+            if (request == null || string.IsNullOrEmpty(request.Email) || string.IsNullOrEmpty(request.Password))
             {
-                var token = await _doctorService.LoginDoctor(request.Email, request.Password);
-                return Ok(new { success = true, token });
+                return BadRequest(new { success = false, message = "Email and password are required." });
             }
-            catch (UnauthorizedAccessException)
+
+            var token = await _doctorService.LoginDoctor(request);
+            if (string.IsNullOrEmpty(token))
             {
                 return Unauthorized(new { success = false, message = "Invalid credentials" });
             }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { success = false, message = ex.Message });
-            }
+
+            return Ok(new { success = true, token });
         }
 
     }

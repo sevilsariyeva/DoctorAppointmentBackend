@@ -85,25 +85,25 @@ namespace DoctorAppointment.Repositories
                 .FirstOrDefaultAsync(); 
         }
 
-        public async Task<bool> CancelAppointmentAsync(string userId, string appointmentId)
-        {
-            var appointment = await _appointmentsCollection
-                .Find(a => a.Id == appointmentId && a.UserId == userId)
-                .FirstOrDefaultAsync();
+        //public async Task<bool> CancelAppointmentAsync(string userId, string appointmentId)
+        //{
+        //    var appointment = await _appointmentsCollection
+        //        .Find(a => a.Id == appointmentId && a.UserId == userId)
+        //        .FirstOrDefaultAsync();
 
-            if (appointment == null)
-            {
-                return false; 
-            }
+        //    if (appointment == null)
+        //    {
+        //        return false; 
+        //    }
 
-            var update = Builders<Appointment>.Update.Set(a => a.Cancelled, true);
+        //    var update = Builders<Appointment>.Update.Set(a => a.Cancelled, true);
 
-            var result = await _appointmentsCollection.UpdateOneAsync(
-                a => a.Id == appointmentId && a.UserId == userId,
-                update);
+        //    var result = await _appointmentsCollection.UpdateOneAsync(
+        //        a => a.Id == appointmentId && a.UserId == userId,
+        //        update);
 
-            return result.ModifiedCount > 0;
-        }
+        //    return result.ModifiedCount > 0;
+        //}
 
 
 

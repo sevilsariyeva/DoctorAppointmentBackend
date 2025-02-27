@@ -11,6 +11,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using System.Security.Authentication;
+using Microsoft.AspNetCore.Identity.Data;
 
 public class DoctorService : IDoctorService
 {
@@ -47,10 +48,10 @@ public class DoctorService : IDoctorService
         return true;
     }
 
-    public async Task<string> LoginDoctor(string email, string password)
+    public async Task<string> LoginDoctor(LoginRequest request)
     {
-        var doctor = await _doctorRepository.GetDoctorByEmailAsync(email);
-        var verificationResult = _passwordHasher.VerifyHashedPassword(doctor, doctor.Password, password);
+        var doctor = await _doctorRepository.GetDoctorByEmailAsync(request.Email);
+        var verificationResult = _passwordHasher.VerifyHashedPassword(doctor, doctor.Password, request.Password);
         if (doctor==null || verificationResult == PasswordVerificationResult.Failed)
         {
             throw new InvalidCredentialException("Invalid email or password.");

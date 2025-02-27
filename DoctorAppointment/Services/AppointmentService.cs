@@ -2,6 +2,7 @@
 using DoctorAppointment.Models;
 using DoctorAppointment.Repositories;
 using Microsoft.AspNetCore.Http.HttpResults;
+using MongoDB.Driver;
 
 namespace DoctorAppointment.Services
 {
@@ -11,13 +12,16 @@ namespace DoctorAppointment.Services
         private readonly IUserRepository _userRepository;
         private readonly IAdminRepository _adminRepository;
         private readonly IAppointmentRepository _appointmentRepository;
-
-        public AppointmentService(IDoctorRepository doctorRepository, IUserRepository userRepository, IAdminRepository adminRepository,IAppointmentRepository appointmentRepository)
+        private readonly MongoDbService _mongoDbService;
+        private readonly MongoClient _mongoClient;
+        public AppointmentService(IDoctorRepository doctorRepository, IUserRepository userRepository, IAdminRepository adminRepository,IAppointmentRepository appointmentRepository,MongoDbService mongoDbService,MongoClient mongoClient)
         {
             _doctorRepository = doctorRepository ?? throw new ArgumentNullException(nameof(doctorRepository));
             _userRepository = userRepository ?? throw new ArgumentNullException(nameof(userRepository));
             _adminRepository = adminRepository ?? throw new ArgumentNullException(nameof(adminRepository));
             _appointmentRepository = appointmentRepository ?? throw new ArgumentNullException(nameof(appointmentRepository));
+            _mongoClient = mongoClient;
+            _mongoDbService = mongoDbService;
         }
 
         //{----------User----------}
@@ -64,31 +68,31 @@ namespace DoctorAppointment.Services
                 : new GetUserAppointmentsResponse { Success = false, Message = "No appointments found." };
         }
 
-        public async Task<bool> CancelAppointmentAsync(string userId, string appointmentId)
-        {
-            var appointment = await _userRepository.GetAppointmentByIdAsync(appointmentId);
-            if (appointment == null)
-            {
-                throw new Exception("Appointment Not Found");
-            }
+        //public async Task<bool> CancelAppointmentAsync(CancelAppointmentRequest request)
+        //{
+        //    var appointment = await _userRepository.GetAppointmentByIdAsync(request.AppointmentId);
+        //    if (appointment == null)
+        //    {
+        //        throw new Exception("Appointment Not Found");
+        //    }
 
-            if (appointment.UserId != userId)
-            {
-                throw new UnauthorizedAccessException("Unauthorized.");
-            }
+        //    if (appointment.UserId != request.UserId)
+        //    {
+        //        throw new UnauthorizedAccessException("Unauthorized.");
+        //    }
 
-            var doctor = await _doctorRepository.GetDoctorByIdAsync(appointment.DocId);
-            doctor?.SlotsBooked[appointment.SlotDate]?.Remove(appointment.SlotTime);
+        //    var doctor = await _doctorRepository.GetDoctorByIdAsync(appointment.DocId);
+        //    doctor?.SlotsBooked[appointment.SlotDate]?.Remove(appointment.SlotTime);
 
-            var result = await _userRepository.CancelAppointmentAsync(userId, appointmentId);
-            if (!result)
-            {
-                throw new Exception("Failed to cancel the appointment.");
-            }
+        //    var result = await _userRepository.CancelAppointmentAsync(request.UserId, request.AppointmentId);
+        //    if (!result)
+        //    {
+        //        throw new Exception("Failed to cancel the appointment.");
+        //    }
 
-            await _doctorRepository.UpdateDoctorAsync(doctor);
-            return result;
-        }
+        //    await _doctorRepository.UpdateDoctorAsync(doctor);
+        //    return result;
+        //}
 
 
         //{----------Admin----------}
@@ -105,31 +109,71 @@ namespace DoctorAppointment.Services
             return (await _userRepository.GetAppointmentByIdAsync(appointmentId))?.UserId;
         }
 
-        public async Task<bool> CancelAppointmentAdminAsync(string userId, string appointmentId)
+        public async Task<bool> CancelAppointmentAsync(CancelAppointmentRequest request, bool isAdmin = false)
         {
-            var appointment = await _userRepository.GetAppointmentByIdAsync(appointmentId);
-            if (appointment == null || appointment.UserId != userId)
+            var appointment = await _userRepository.GetAppointmentByIdAsync(request.AppointmentId);
+            if (appointment == null)
             {
-                return false;
+                throw new Exception("Appointment Not Found");
+            }
+
+            if (!isAdmin && appointment.UserId != request.UserId)
+            {
+                throw new UnauthorizedAccessException("Unauthorized.");
             }
 
             var doctor = await _doctorRepository.GetDoctorByIdAsync(appointment.DocId);
             doctor?.SlotsBooked[appointment.SlotDate]?.Remove(appointment.SlotTime);
 
-            if (appointment != null && appointment.Payment != null && doctor != null)
+            if (isAdmin && appointment.Payment != null && doctor != null)
             {
                 appointment.Payment -= doctor.Fees;
             }
-            var result = await _userRepository.CancelAppointmentAsync(userId, appointmentId);
-            if (!result)
+
+            if (isAdmin)
             {
-                return false;
+                using (var session = await _mongoDbService.StartSessionAsync())
+                {
+                    session.StartTransaction();
+                    try
+                    {
+                        var result = await _appointmentRepository.CancelAppointmentAsync(request.AppointmentId, request.UserId, true, session);
+                        if (!result)
+                        {
+                            await session.AbortTransactionAsync();
+                            return false;
+                        }
+
+                        await _doctorRepository.UpdateDoctorAsync(doctor);
+                        await _appointmentRepository.UpdateAppointmentAsync(appointment);
+
+                        await session.CommitTransactionAsync();
+                        return true;
+                    }
+                    catch
+                    {
+                        await session.AbortTransactionAsync();
+                        throw;
+                    }
+                }
+            }
+            else
+            {
+                using var session = await _mongoClient.StartSessionAsync();
+                var result = await _appointmentRepository.CancelAppointmentAsync(request.AppointmentId,request.UserId, false, session);
+
+                if (!result)
+                {
+                    throw new Exception("Failed to cancel the appointment.");
+                }
+
+                await _doctorRepository.UpdateDoctorAsync(doctor);
+                return result;
             }
 
-            await _doctorRepository.UpdateDoctorAsync(doctor);
-            await _appointmentRepository.UpdateAppointmentAsync(appointment);
-            return true;
         }
+
+
         public async Task<bool> UpdateAppointmentAsync(Appointment appointment)
         {
             return await _appointmentRepository.UpdateAppointmentAsync(appointment);
@@ -155,6 +199,6 @@ namespace DoctorAppointment.Services
             return await _appointmentRepository.GetDoctorByAppointmentIdAsync(appointmentId);
         }
 
-
+      
     }
 }

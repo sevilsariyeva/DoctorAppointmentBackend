@@ -73,22 +73,23 @@ namespace DoctorAppointment.Controllers
                 var userId = await _appointmentService.GetUserIdByAppointmentIdAsync(request.AppointmentId);
                 if (string.IsNullOrEmpty(userId))
                 {
-                    throw new Exception("User not found for the given appointment.");
+                    return NotFound(new { success = false, message = "User not found for the given appointment." });
                 }
 
-                var result = await _appointmentService.CancelAppointmentAdminAsync(userId, request.AppointmentId);
+                var result = await _appointmentService.CancelAppointmentAsync(request,true);
                 if (!result)
                 {
-                    throw new Exception( "Failed to cancel!");
+                    return BadRequest(new { success = false, message = "Failed to cancel appointment." });
                 }
 
-                return Ok(new { success = true, message = "Appointment cancelled successfully" });
+                return Ok(new { success = true, message = "Appointment cancelled successfully." });
             }
             catch (Exception ex)
             {
                 return StatusCode(500, new { success = false, message = $"Internal Server Error: {ex.Message}" });
             }
         }
+
 
         [HttpGet("dashboard")]
         public async Task<IActionResult> GetDashboardData()

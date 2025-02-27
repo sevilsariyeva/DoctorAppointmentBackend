@@ -1,4 +1,5 @@
 ﻿using DoctorAppointment.Models;
+using DoctorAppointment.Models.Dtos;
 using DoctorAppointment.Services;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
@@ -36,33 +37,46 @@ namespace DoctorAppointment.Repositories
                 .FirstOrDefaultAsync();
         }
 
-        public async Task<bool> CancelAppointmentAsync(string userId, string appointmentId)
+        public async Task<bool> CancelAppointmentAsync(string appointmentId, string userId = null, bool isAdmin = false, IClientSessionHandle session = null)
         {
-            var appointment = await _appointmentsCollection
-                .Find(a => a.Id == appointmentId && a.UserId == userId)
-                .FirstOrDefaultAsync();
 
+            var filter = isAdmin
+         ? Builders<Appointment>.Filter.Eq(a => a.Id, appointmentId) 
+         : Builders<Appointment>.Filter.And(
+             Builders<Appointment>.Filter.Eq(a => a.Id, appointmentId),
+             Builders<Appointment>.Filter.Eq(a => a.UserId, userId) 
+         );
+
+            var appointment = await _appointmentsCollection.Find(filter).FirstOrDefaultAsync();
             if (appointment == null)
             {
                 return false;
             }
 
-            var doctor = await _doctorRepository.GetDoctorByIdAsync(appointment.DocId);
-            if (doctor != null)
-            {
-                appointment.Payment -= doctor.Fees;
-            }
+            var newPayment = CalculateUpdatedPayment(appointment, isAdmin);
 
             var update = Builders<Appointment>.Update
-                .Set(a => a.Cancelled, true)
-                .Set(a => a.Payment, appointment.Payment); 
+        .Set(a => a.Cancelled, true)
+        .Set(a => a.Payment, newPayment);
 
-            var result = await _appointmentsCollection.UpdateOneAsync(
-                a => a.Id == appointmentId && a.UserId == userId,
-                update);
+            var result = session != null
+                ? await _appointmentsCollection.UpdateOneAsync(session, filter, update)
+                : await _appointmentsCollection.UpdateOneAsync(filter, update);
 
             return result.ModifiedCount > 0;
         }
+
+        private decimal? CalculateUpdatedPayment(Appointment appointment, bool isAdmin)
+        {
+            if (!isAdmin || appointment.Payment == null)
+                return appointment.Payment;
+
+            var doctor = _doctorRepository.GetDoctorByIdAsync(appointment.DocId).Result;
+            return doctor != null ? appointment.Payment - doctor.Fees : appointment.Payment;
+        }
+
+
+
 
         public async Task<List<Appointment>> GetAllAppointmentsAsync()
         {
@@ -104,6 +118,6 @@ namespace DoctorAppointment.Repositories
             return doctor;
         }
 
-
+        
     }
 }

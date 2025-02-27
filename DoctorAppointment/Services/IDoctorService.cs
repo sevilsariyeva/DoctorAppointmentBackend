@@ -1,6 +1,7 @@
 ﻿using DoctorAppointment.Models.Dtos;
 using DoctorAppointment.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity.Data;
 
 namespace DoctorAppointment.Services
 {
@@ -8,6 +9,6 @@ namespace DoctorAppointment.Services
     {
         Task<List<DoctorDto>> GetAllDoctorsAsync();
         Task<bool> ChangeAvailabilityAsync(string doctorId);
-        Task<string> LoginDoctor(string email, string password);
+        Task<string> LoginDoctor(LoginRequest request);
     }
 }

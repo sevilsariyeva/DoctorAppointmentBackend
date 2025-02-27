@@ -39,5 +39,9 @@ namespace DoctorAppointment.Services
         {
             return _database.GetCollection<T>(collectionName);
         }
+        public async Task<IClientSessionHandle> StartSessionAsync()
+        {
+            return await _client.StartSessionAsync();
+        }
     }
 }

@@ -11,6 +11,6 @@ namespace DoctorAppointment.Repositories
         Task AddAppointmentAsync(Appointment appointment);
         Task<List<Appointment>> GetUserAppointmentsAsync(string userId);
         Task<Appointment> GetAppointmentByIdAsync(string appointmentId);
-        Task<bool> CancelAppointmentAsync(string userId, string appointmentId);
+        //Task<bool> CancelAppointmentAsync(string userId, string appointmentId);
     }
 }
