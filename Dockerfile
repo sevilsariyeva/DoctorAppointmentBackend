@@ -1,11 +1,13 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
-COPY DoctorAppointment.csproj ./
-RUN dotnet restore DoctorAppointment.csproj
+COPY DoctorAppointment/DoctorAppointment.csproj ./DoctorAppointment/
+WORKDIR /app/DoctorAppointment
 
-COPY . ./
-RUN dotnet publish -c Release -o out
+RUN dotnet restore
+
+COPY . .
+RUN dotnet publish -c Release -o /app/out
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
