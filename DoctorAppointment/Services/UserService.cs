@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity.Data;
 using System.Security.Authentication;
 using Microsoft.AspNetCore.Http.HttpResults;
+using DoctorAppointment.Utilities;
 
 namespace DoctorAppointment.Services
 {
@@ -29,97 +30,88 @@ namespace DoctorAppointment.Services
             _doctorRepository = doctorRepository;
         }
 
-        public async Task<RegisterUserResponse> RegisterUserAsync(RegisterUserRequest request)
+        public async Task<JwtTokenResponse> RegisterUserAsync(RegisterUserRequest request)
         {
-            Console.WriteLine($"Received Request: FullName={request.FullName}, Email={request.Email}, Password={request.Password}");
             if (!IsValidEmail(request.Email))
             {
-                return new RegisterUserResponse { Success = false, Message = "Invalid email format." };
+                throw new ArgumentException("Invalid email format.", nameof(request.Email));
             }
 
             if (!IsStrongPassword(request.Password))
             {
-                return new RegisterUserResponse { Success = false, Message = "Password must be at least 8 characters long and contain uppercase, lowercase, and a digit." };
+                throw new ArgumentException("Password must be at least 8 characters long and contain uppercase, lowercase, and a digit.");
             }
 
             var existingUser = await _userRepository.GetUserByEmailAsync(request.Email);
             if (existingUser != null)
             {
-                return new RegisterUserResponse { Success = false, Message = "Email is already in use." };
+                throw new InvalidOperationException("Email is already in use.");
             }
 
             var newUser = new User
             {
                 FullName = request.FullName,
                 Email = request.Email,
-                ImageUrl="/uploads/upload_area.png"
+                ImageUrl = "/uploads/upload_area.png"
             };
-           
-            var hashedPassword = _passwordHasher.HashPassword(newUser, request.Password);
-            newUser.Password = hashedPassword;
+
+            newUser.Password = _passwordHasher.HashPassword(newUser, request.Password);
 
             var result = await _userRepository.AddUserAsync(newUser);
             if (!result)
             {
-                return new RegisterUserResponse { Success = false, Message = "User registration failed." };
+                throw new Exception("User registration failed.");
             }
 
-            var token = GenerateJwtToken(newUser);
-
-            return new RegisterUserResponse { Success = true, Message = "User registered successfully.", Token = token };
+            return JwtTokenGenerator.GenerateToken(newUser.Id.ToString(), newUser.Email, "User", _configuration);
         }
-      
-        
-      
-        public async Task<string> LoginUserAsync(LoginRequest request)
+
+
+        public async Task<JwtTokenResponse> LoginUserAsync(LoginRequest request)
         {
             var user = await _userRepository.GetUserByEmailAsync(request.Email);
-
-            var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.Password, request.Password);
-            if (user == null || verificationResult == PasswordVerificationResult.Failed)
+            if (user == null)
             {
-                throw new InvalidCredentialException("Invalid email or password." );
+                throw new UnauthorizedAccessException("Invalid email or password.");
             }
 
-            var token = GenerateJwtToken(user);
-            return token;
+            var verificationResult = _passwordHasher.VerifyHashedPassword(user, user.Password, request.Password);
+            if (verificationResult == PasswordVerificationResult.Failed)
+            {
+                throw new UnauthorizedAccessException("Invalid email or password.");
+            }
+
+            return JwtTokenGenerator.GenerateToken(user.Id, user.Email, "User", _configuration);
+
         }
-        public async Task<GetProfileResponse> GetProfileAsync(string currentUserId)
+
+        public async Task<User> GetProfileAsync(string currentUserId)
         {
             if (string.IsNullOrEmpty(currentUserId))
             {
-                return new GetProfileResponse { Success = false, Message = "User ID is required." };
+                throw new ArgumentException("User ID is required.", nameof(currentUserId));
             }
 
             var user = await _userRepository.GetUserByIdAsync(currentUserId);
             if (user == null)
             {
-                return new GetProfileResponse { Success = false, Message = "User not found." };
+                throw new KeyNotFoundException("User not found.");
             }
 
-            return new GetProfileResponse
-            {
-                Success = true,
-                Message = "User profile retrieved successfully.",
-                Id=user.Id,
-                FullName = user.FullName,
-                Email = user.Email,
-                ImageUrl = user.ImageUrl,
-                Address = user.Address,
-                Gender = user.Gender,
-                Dob = user.Dob,
-                Phone = user.Phone
-            };
+            return user;
         }
-        public async Task<UpdateUserResponse> UpdateUserAsync(string userId, [FromForm] UpdateUserRequest request)
+
+        public async Task<User> UpdateUserAsync(string userId, UpdateUserRequest request)
         {
             var user = await _userRepository.GetUserByIdAsync(userId);
             if (user == null)
-                return new UpdateUserResponse { Success = false, Message = "User not found." };
+            {
+                throw new KeyNotFoundException("User not found.");
+            }
 
             bool hasChanges = false;
 
-            if (request.FullName != null && request.FullName != user.FullName)
+            if (!string.IsNullOrEmpty(request.FullName) && request.FullName != user.FullName)
             {
                 user.FullName = request.FullName;
                 hasChanges = true;
@@ -145,13 +137,13 @@ namespace DoctorAppointment.Services
                     user.Address = new Address();
                 }
 
-                if (request.Address.Line1 != null && request.Address.Line1 != user.Address.Line1)
+                if (!string.IsNullOrEmpty(request.Address.Line1) && request.Address.Line1 != user.Address.Line1)
                 {
                     user.Address.Line1 = request.Address.Line1;
                     hasChanges = true;
                 }
 
-                if (request.Address.Line2 != null && request.Address.Line2 != user.Address.Line2)
+                if (!string.IsNullOrEmpty(request.Address.Line2) && request.Address.Line2 != user.Address.Line2)
                 {
                     user.Address.Line2 = request.Address.Line2;
                     hasChanges = true;
@@ -170,7 +162,7 @@ namespace DoctorAppointment.Services
                 hasChanges = true;
             }
 
-            if (request.Phone != null && request.Phone != user.Phone)
+            if (!string.IsNullOrEmpty(request.Phone) && request.Phone != user.Phone)
             {
                 user.Phone = request.Phone;
                 hasChanges = true;
@@ -178,52 +170,19 @@ namespace DoctorAppointment.Services
 
             if (!hasChanges)
             {
-                return new UpdateUserResponse { Success = true, Message = "No changes detected." };
+                return user;
             }
 
             var result = await _userRepository.UpdateUserAsync(user);
             if (!result)
-                return new UpdateUserResponse { Success = false, Message = "User update failed." };
-
-            return new UpdateUserResponse { Success = true, Message = "User updated successfully." };
-        }
-        private string GenerateJwtToken(User user)
-        {
-            if (user == null || user.Id == "")
             {
-                throw new ArgumentNullException(nameof(user), "User object is null or ID is missing.");
-            }
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var secretKey = _configuration["Jwt:SecretKey"];
-            var issuer = _configuration["Jwt:Issuer"];
-            var audience = _configuration["Jwt:Audience"];
-            var expiryMinutes = _configuration.GetValue<int>("Jwt:ExpiryMinutes");
-
-            if (string.IsNullOrEmpty(secretKey))
-            {
-                throw new InvalidOperationException("JWT SecretKey is not configured.");
+                throw new Exception("User update failed.");
             }
 
-            var key = Encoding.UTF8.GetBytes(secretKey);
-
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[]
-                {
-            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Name, user.FullName),
-            new Claim(ClaimTypes.Role, "User")
-        }),
-                Expires = DateTime.UtcNow.AddMinutes(expiryMinutes),
-                Issuer = issuer,
-                Audience = audience,
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
-
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
+            return user;
         }
+
+
         private bool IsValidEmail(string email)
         {
             var emailRegex = new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$");

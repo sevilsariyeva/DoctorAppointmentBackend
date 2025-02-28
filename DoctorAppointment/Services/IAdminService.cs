@@ -6,11 +6,8 @@ namespace DoctorAppointment.Services
 {
     public interface IAdminService
     {
-        Task<string> LoginAdmin(LoginRequest request);
+        Task<JwtTokenResponse> LoginAdmin(LoginRequest request);
         Task<Doctor> AddDoctorAsync(DoctorDto doctorDto, IFormFile image);
-        //Task<int> GetDoctorsCountAsync();
-        //Task<int> GetAppointmentsCountAsync();
-        //Task<int> GetPatientsCountAsync();
         Task<AdminDashboardDto> GetAdminDashboardStatisticsAsync(int latestAppointmentsCount);
     }
 }

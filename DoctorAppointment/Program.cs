@@ -1,4 +1,5 @@
-﻿using DoctorAppointment.Models;
+﻿using DoctorAppointment.Middlewares;
+using DoctorAppointment.Models;
 using DoctorAppointment.Repositories;
 using DoctorAppointment.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -13,11 +14,7 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
-builder.Services.AddSingleton<IMongoClient>(sp =>
-{
-    var connectionString = configuration.GetValue<string>("MongoDb:Uri");
-    return new MongoClient(connectionString);
-});
+
 
 builder.Services.AddScoped<IPasswordHasher<Doctor>, PasswordHasher<Doctor>>();
 builder.Services.AddScoped<IPasswordHasher<Admin>, PasswordHasher<Admin>>();
@@ -43,7 +40,7 @@ var adminUrl = configuration.GetValue<string>("admin_url");
 var secretKey = Encoding.UTF8.GetBytes(configuration["Jwt:SecretKey"]);
 var issuer = configuration["Jwt:Issuer"];
 var audience = configuration["Jwt:Audience"];
-
+Microsoft.IdentityModel.Logging.IdentityModelEventSource.ShowPII = true;
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -66,14 +63,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("Admin", policy => policy.RequireClaim(ClaimTypes.Role, "Admin"));
+    options.AddPolicy("Doctor", policy => policy.RequireClaim(ClaimTypes.Role, "Doctor"));
+    options.AddPolicy("User", policy => policy.RequireClaim(ClaimTypes.Role, "User"));
 });
+
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
         policy.WithOrigins(frontendUrl, adminUrl)
               .AllowAnyMethod()
-              .AllowAnyHeader());
+              .AllowAnyHeader()
+              .AllowCredentials());
 });
 
 builder.Services.AddControllersWithViews();
@@ -91,10 +92,9 @@ app.UseStaticFiles();
 
 app.UseRouting();
 app.UseCors("AllowAll");
-
 app.UseAuthentication();
 app.UseAuthorization();
-
+app.UseMiddleware<GlobalExceptionMiddleware>();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

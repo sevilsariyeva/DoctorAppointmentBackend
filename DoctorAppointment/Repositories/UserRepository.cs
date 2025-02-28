@@ -5,7 +5,7 @@ using MongoDB.Driver;
 
 namespace DoctorAppointment.Repositories
 {
-    public class UserRepository:IUserRepository
+    public class UserRepository : IUserRepository
     {
         private readonly IMongoCollection<User> _usersCollection;
         private readonly IMongoCollection<Appointment> _appointmentsCollection;
@@ -36,25 +36,29 @@ namespace DoctorAppointment.Repositories
         }
         public async Task<User> GetUserByIdAsync(string userId)
         {
-            return await _usersCollection.Find(u=>u.Id==userId).FirstOrDefaultAsync();
+            return await _usersCollection.Find(u => u.Id == userId).FirstOrDefaultAsync();
         }
         public async Task<bool> UpdateUserAsync(User user)
         {
+            if (user == null || string.IsNullOrWhiteSpace(user.Id))
+                throw new ArgumentException("Invalid user data", nameof(user));
+
             try
             {
                 var filter = Builders<User>.Filter.Eq(u => u.Id, user.Id);
-
                 var updateDefinition = Builders<User>.Update;
-                var updates = new List<UpdateDefinition<User>>();
 
-                if (user.FullName != null) updates.Add(updateDefinition.Set(u => u.FullName, user.FullName));
-                if (user.ImageUrl != null) updates.Add(updateDefinition.Set(u => u.ImageUrl, user.ImageUrl));
-                if (user.Address != null) updates.Add(updateDefinition.Set(u => u.Address, user.Address));
-                if (user.Gender != null) updates.Add(updateDefinition.Set(u => u.Gender, user.Gender));
-                if (user.Dob != default(DateTime)) updates.Add(updateDefinition.Set(u => u.Dob, user.Dob));
-                if (user.Phone != null) updates.Add(updateDefinition.Set(u => u.Phone, user.Phone));
+                var updates = new List<UpdateDefinition<User>>
+                    {
+                        updateDefinition.Set(u => u.FullName, user.FullName),
+                        updateDefinition.Set(u => u.ImageUrl, user.ImageUrl),
+                        updateDefinition.Set(u => u.Address, user.Address),
+                        updateDefinition.Set(u => u.Gender, user.Gender),
+                        updateDefinition.Set(u => u.Dob, user.Dob),
+                        updateDefinition.Set(u => u.Phone, user.Phone)
+                    }.Where(update => update != null).ToList();
 
-                if (updates.Count == 0) return true;
+                if (!updates.Any()) return true;
 
                 var update = updateDefinition.Combine(updates);
                 var result = await _usersCollection.UpdateOneAsync(filter, update);
@@ -65,6 +69,7 @@ namespace DoctorAppointment.Repositories
                 return false;
             }
         }
+
         public async Task AddAppointmentAsync(Appointment appointment)
         {
             await _appointmentsCollection.InsertOneAsync(appointment);
@@ -82,30 +87,8 @@ namespace DoctorAppointment.Repositories
         {
             return await _appointmentsCollection
                 .Find(a => a.Id == appointmentId)
-                .FirstOrDefaultAsync(); 
+                .FirstOrDefaultAsync();
         }
-
-        //public async Task<bool> CancelAppointmentAsync(string userId, string appointmentId)
-        //{
-        //    var appointment = await _appointmentsCollection
-        //        .Find(a => a.Id == appointmentId && a.UserId == userId)
-        //        .FirstOrDefaultAsync();
-
-        //    if (appointment == null)
-        //    {
-        //        return false; 
-        //    }
-
-        //    var update = Builders<Appointment>.Update.Set(a => a.Cancelled, true);
-
-        //    var result = await _appointmentsCollection.UpdateOneAsync(
-        //        a => a.Id == appointmentId && a.UserId == userId,
-        //        update);
-
-        //    return result.ModifiedCount > 0;
-        //}
-
-
 
     }
 }

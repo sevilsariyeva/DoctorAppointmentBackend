@@ -3,6 +3,7 @@ using DoctorAppointment.Models;
 using DoctorAppointment.Repositories;
 using Microsoft.AspNetCore.Http.HttpResults;
 using MongoDB.Driver;
+using DoctorAppointment.Exceptions;
 
 namespace DoctorAppointment.Services
 {
@@ -25,18 +26,23 @@ namespace DoctorAppointment.Services
         }
 
         //{----------User----------}
-        public async Task<BookAppointmentResponse> BookAppointmentAsync(string userId, string docId, string slotDate, string slotTime)
+        public async Task<Appointment> BookAppointmentAsync(string userId, string docId, string slotDate, string slotTime)
         {
             var doctor = await _doctorRepository.GetDoctorByIdAsync(docId);
-            if (doctor == null || !doctor.Available || (doctor.SlotsBooked.ContainsKey(slotDate) && doctor.SlotsBooked[slotDate].Contains(slotTime)))
+            if (doctor == null)
             {
-                return new BookAppointmentResponse { Success = false, Message = "Doctor not available or slot is booked" };
+                throw new NotFoundException("Doctor not found.");
+            }
+
+            if (!doctor.Available || (doctor.SlotsBooked.ContainsKey(slotDate) && doctor.SlotsBooked[slotDate].Contains(slotTime)))
+            {
+                throw new DoctorUnavailableException("Doctor not available or slot is already booked.");
             }
 
             var user = await _userRepository.GetUserByIdAsync(userId);
             if (user == null)
             {
-                return new BookAppointmentResponse { Success = false, Message = "User not found." };
+                throw new NotFoundException("User not found.");
             }
 
             doctor.SlotsBooked.TryAdd(slotDate, new List<string>());
@@ -54,54 +60,30 @@ namespace DoctorAppointment.Services
                 Date = DateTime.UtcNow
             };
 
+            
             await _userRepository.AddAppointmentAsync(appointment);
             await _doctorRepository.UpdateDoctorAsync(doctor);
 
-            return new BookAppointmentResponse { Success = true, Message = "Appointment booked successfully." };
+
+            return appointment;
         }
 
-        public async Task<GetUserAppointmentsResponse> GetUserAppointmentsAsync(string userId)
+        public async Task<List<Appointment>> GetUserAppointmentsAsync(string userId)
         {
             var appointments = await _userRepository.GetUserAppointmentsAsync(userId);
-            return appointments != null && appointments.Any()
-                ? new GetUserAppointmentsResponse { Success = true, Appointments = appointments }
-                : new GetUserAppointmentsResponse { Success = false, Message = "No appointments found." };
+
+            if (appointments == null || !appointments.Any())
+            {
+                throw new KeyNotFoundException("No appointments found.");
+            }
+
+            return appointments;
         }
 
-        //public async Task<bool> CancelAppointmentAsync(CancelAppointmentRequest request)
-        //{
-        //    var appointment = await _userRepository.GetAppointmentByIdAsync(request.AppointmentId);
-        //    if (appointment == null)
-        //    {
-        //        throw new Exception("Appointment Not Found");
-        //    }
-
-        //    if (appointment.UserId != request.UserId)
-        //    {
-        //        throw new UnauthorizedAccessException("Unauthorized.");
-        //    }
-
-        //    var doctor = await _doctorRepository.GetDoctorByIdAsync(appointment.DocId);
-        //    doctor?.SlotsBooked[appointment.SlotDate]?.Remove(appointment.SlotTime);
-
-        //    var result = await _userRepository.CancelAppointmentAsync(request.UserId, request.AppointmentId);
-        //    if (!result)
-        //    {
-        //        throw new Exception("Failed to cancel the appointment.");
-        //    }
-
-        //    await _doctorRepository.UpdateDoctorAsync(doctor);
-        //    return result;
-        //}
-
-
-        //{----------Admin----------}
-        public async Task<ServiceResponse<List<Appointment>>> GetUserAppointmentsAsync()
+        public async Task<List<Appointment>> GetUserAppointmentsAsync()
         {
             var appointments = await _adminRepository.GetAllAppointmentsAsync();
-            return appointments != null && appointments.Count > 0
-                ? new ServiceResponse<List<Appointment>>(appointments, "Appointments retrieved successfully.", true)
-                : new ServiceResponse<List<Appointment>>(null, "No appointments found.", false);
+            return appointments ?? new List<Appointment>();
         }
 
         public async Task<string?> GetUserIdByAppointmentIdAsync(string appointmentId)
@@ -114,7 +96,7 @@ namespace DoctorAppointment.Services
             var appointment = await _userRepository.GetAppointmentByIdAsync(request.AppointmentId);
             if (appointment == null)
             {
-                throw new Exception("Appointment Not Found");
+                throw new NotFoundException("Appointment Not Found");
             }
 
             if (!isAdmin && appointment.UserId != request.UserId)
@@ -123,60 +105,72 @@ namespace DoctorAppointment.Services
             }
 
             var doctor = await _doctorRepository.GetDoctorByIdAsync(appointment.DocId);
-            doctor?.SlotsBooked[appointment.SlotDate]?.Remove(appointment.SlotTime);
 
-            if (isAdmin && appointment.Payment != null && doctor != null)
+            if (doctor == null)
+            {
+                throw new NotFoundException("Doctor Not Found");
+            }
+
+            if (doctor.SlotsBooked.TryGetValue(appointment.SlotDate, out var slotTimes))
+            {
+                slotTimes.Remove(appointment.SlotTime);
+            }
+
+            if (isAdmin && appointment.Payment != null)
             {
                 appointment.Payment -= doctor.Fees;
             }
 
-            if (isAdmin)
+            return await HandleTransactionAsync(request, isAdmin, doctor, appointment);
+        }
+
+        private async Task<bool> HandleTransactionAsync(CancelAppointmentRequest request, bool isAdmin, Doctor doctor, Appointment appointment)
+        {
+            using var session = await _mongoDbService.StartSessionAsync();
+            session.StartTransaction();
+            try
             {
-                using (var session = await _mongoDbService.StartSessionAsync())
-                {
-                    session.StartTransaction();
-                    try
-                    {
-                        var result = await _appointmentRepository.CancelAppointmentAsync(request.AppointmentId, request.UserId, true, session);
-                        if (!result)
-                        {
-                            await session.AbortTransactionAsync();
-                            return false;
-                        }
-
-                        await _doctorRepository.UpdateDoctorAsync(doctor);
-                        await _appointmentRepository.UpdateAppointmentAsync(appointment);
-
-                        await session.CommitTransactionAsync();
-                        return true;
-                    }
-                    catch
-                    {
-                        await session.AbortTransactionAsync();
-                        throw;
-                    }
-                }
-            }
-            else
-            {
-                using var session = await _mongoClient.StartSessionAsync();
-                var result = await _appointmentRepository.CancelAppointmentAsync(request.AppointmentId,request.UserId, false, session);
-
+                var result = await _appointmentRepository.CancelAppointmentAsync(request.AppointmentId, request.UserId, isAdmin, session);
                 if (!result)
                 {
-                    throw new Exception("Failed to cancel the appointment.");
+                    await session.AbortTransactionAsync();
+                    return false;
                 }
 
                 await _doctorRepository.UpdateDoctorAsync(doctor);
-                return result;
-            }
+                await _appointmentRepository.UpdateAppointmentAsync(appointment);
 
+                await session.CommitTransactionAsync();
+                return true;
+            }
+            catch
+            {
+                await session.AbortTransactionAsync();
+                throw;
+            }
         }
 
 
-        public async Task<bool> UpdateAppointmentAsync(Appointment appointment)
+        public async Task<Appointment> UpdateAppointmentAsync(UpdateAppointmentRequest request)
         {
-            return await _appointmentRepository.UpdateAppointmentAsync(appointment);
+            var appointment = await _appointmentRepository.GetAppointmentByIdAsync(request.AppointmentId);
+            if (appointment == null)
+            {
+                throw new NotFoundException($"Appointment with ID {request.AppointmentId} not found.");
+            }
+
+            appointment.Amount = request.Amount;
+            appointment.Cancelled = request.Cancelled;
+            appointment.Payment = request.Payment;
+
+            var updated = await _appointmentRepository.UpdateAppointmentAsync(appointment);
+
+            if (!updated)
+            {
+                throw new DatabaseUpdateException($"Failed to update appointment {request.AppointmentId}.");
+            }
+
+            return appointment;
         }
 
         public async Task<Appointment?> GetAppointmentByIdAsync(string appointmentId)
@@ -188,17 +182,29 @@ namespace DoctorAppointment.Services
             var appointment = await _appointmentRepository.GetAppointmentByIdAsync(appointmentId);
             if (appointment == null)
             {
-                return false;
+                throw new NotFoundException($"Appointment with ID {appointmentId} not found.");
             }
 
-            appointment.Amount = paymentAmount; 
-            return await _appointmentRepository.UpdateAppointmentAsync(appointment);
+            appointment.Amount = paymentAmount;
+            var updated = await _appointmentRepository.UpdateAppointmentAsync(appointment);
+
+            if (!updated)
+            {
+                throw new DatabaseUpdateException($"Failed to update payment for appointment {appointmentId}.");
+            }
+
+            return true;
         }
-        public async Task<Doctor?> GetDoctorByAppointmentIdAsync(string appointmentId)
+        public async Task<Doctor> GetDoctorByAppointmentIdAsync(string appointmentId)
         {
-            return await _appointmentRepository.GetDoctorByAppointmentIdAsync(appointmentId);
+            var doctor = await _appointmentRepository.GetDoctorByAppointmentIdAsync(appointmentId);
+            if (doctor == null)
+            {
+                throw new NotFoundException($"Doctor for appointment {appointmentId} not found.");
+            }
+
+            return doctor;
         }
 
-      
     }
 }

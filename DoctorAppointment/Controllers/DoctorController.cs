@@ -30,22 +30,14 @@ namespace DoctorAppointment.Controllers
                 return BadRequest(new { success = false, message = "Invalid request data" });
             }
 
-            try
+            var success = await _doctorService.ChangeAvailabilityAsync(request.DoctorId);
+            if (!success)
             {
-                var success = await _doctorService.ChangeAvailabilityAsync(request.DoctorId);
-                if (!success)
-                {
-                    return NotFound(new { success = false, message = "Doctor not found" });
-                }
+                return NotFound(new { success = false, message = "Doctor not found" });
+            }
 
-                return Ok(new { success = true, message = "Availability updated successfully" });
-            }
-            catch (Exception)
-            {
-                return StatusCode(500, new { success = false, message = "An unexpected error occurred. Please try again later." });
-            }
+            return Ok(new { success = true, message = "Availability updated successfully" });
         }
-
 
         [HttpPost("login")]
         public async Task<IActionResult> LoginDoctor([FromBody] LoginRequest request)

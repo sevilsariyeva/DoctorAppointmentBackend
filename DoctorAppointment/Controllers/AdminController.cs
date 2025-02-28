@@ -24,20 +24,15 @@ namespace DoctorAppointment.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> LoginAdmin([FromBody] LoginRequest request)
         {
-            try
+            var response = await _adminService.LoginAdmin(request);
+            if (string.IsNullOrEmpty(response.Token))
             {
-                var token = await _adminService.LoginAdmin(request);
-                return Ok(new { success = true, token });
+                return Unauthorized(new { success = false, message = "Invalid credentials." });
             }
-            catch (UnauthorizedAccessException)
-            {
-                return Unauthorized(new { success = false, message = "Invalid credentials" });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { success = false, message = ex.Message });
-            }
+
+            return Ok(new { success = true, response.Token });
         }
+
         [HttpPost("add-doctor")]
         public async Task<IActionResult> AddDoctor([FromForm] DoctorDto doctorDto, [FromForm] IFormFile image)
         {
@@ -48,46 +43,32 @@ namespace DoctorAppointment.Controllers
         [HttpGet("appointments")]
         public async Task<IActionResult> GetAllAppointments()
         {
-            try
-            {
-                var response = await _appointmentService.GetUserAppointmentsAsync();
+            var appointments = await _appointmentService.GetUserAppointmentsAsync();
 
-                if (!response.Success)
-                {
-                    return BadRequest(new ServiceResponse<List<Appointment>>(null, response.Message, false));
-                }
-
-                return Ok(new ServiceResponse<List<Appointment>>(response.Data));
-            }
-            catch (Exception ex)
+            if (appointments == null || !appointments.Any())
             {
-                return StatusCode(500, new ServiceResponse<List<Appointment>>(null, $"Internal Server Error: {ex.Message}", false));
+                return NotFound("No appointments found.");
             }
+
+            return Ok(appointments);
         }
 
         [HttpDelete("cancel-appointment/{appointmentId}")]
         public async Task<IActionResult> CancelAppointment(CancelAppointmentRequest request)
         {
-            try
+            var userId = await _appointmentService.GetUserIdByAppointmentIdAsync(request.AppointmentId);
+            if (string.IsNullOrEmpty(userId))
             {
-                var userId = await _appointmentService.GetUserIdByAppointmentIdAsync(request.AppointmentId);
-                if (string.IsNullOrEmpty(userId))
-                {
-                    return NotFound(new { success = false, message = "User not found for the given appointment." });
-                }
-
-                var result = await _appointmentService.CancelAppointmentAsync(request,true);
-                if (!result)
-                {
-                    return BadRequest(new { success = false, message = "Failed to cancel appointment." });
-                }
-
-                return Ok(new { success = true, message = "Appointment cancelled successfully." });
+                return NotFound(new { success = false, message = "User not found for the given appointment." });
             }
-            catch (Exception ex)
+
+            var result = await _appointmentService.CancelAppointmentAsync(request, true);
+            if (!result)
             {
-                return StatusCode(500, new { success = false, message = $"Internal Server Error: {ex.Message}" });
+                return BadRequest(new { success = false, message = "Failed to cancel appointment." });
             }
+
+            return Ok(new { success = true, message = "Appointment cancelled successfully." });
         }
 
 

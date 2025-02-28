@@ -29,7 +29,7 @@ namespace DoctorAppointment.Services
             _environment = environment;
             _doctorpasswordHasher = doctorpasswordHasher;
         }
-        public async Task<string> LoginAdmin(LoginRequest request)
+        public async Task<JwtTokenResponse> LoginAdmin(LoginRequest request)
         {
             var admin = await _adminRepository.GetAdminByEmailAsync(request.Email);
 

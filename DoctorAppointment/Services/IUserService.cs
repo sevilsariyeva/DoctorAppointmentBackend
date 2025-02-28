@@ -7,10 +7,11 @@ namespace DoctorAppointment.Services
 {
     public interface IUserService
     {
-        Task<RegisterUserResponse> RegisterUserAsync(RegisterUserRequest request);
-        Task<string> LoginUserAsync(LoginRequest request);
-        Task<GetProfileResponse> GetProfileAsync(string currentUserId);
-        Task<UpdateUserResponse> UpdateUserAsync(string userId, UpdateUserRequest request);
-        
+        Task<JwtTokenResponse> RegisterUserAsync(RegisterUserRequest request);
+        Task<JwtTokenResponse> LoginUserAsync(LoginRequest request);
+        Task<User> GetProfileAsync(string currentUserId);
+        Task<User> UpdateUserAsync(string userId, UpdateUserRequest request);
+
+
     }
 }

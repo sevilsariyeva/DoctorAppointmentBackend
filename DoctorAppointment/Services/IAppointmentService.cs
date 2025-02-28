@@ -5,14 +5,12 @@ namespace DoctorAppointment.Services
 {
     public interface IAppointmentService
     {
-        Task<BookAppointmentResponse> BookAppointmentAsync(string userId, string docId, string slotDate, string slotTime);
-        Task<GetUserAppointmentsResponse> GetUserAppointmentsAsync(string userId);
-        //Task<bool> CancelAppointmentAsync(string userId, string appointmentId);
-        Task<bool> CancelAppointmentAsync(CancelAppointmentRequest request, bool isAdmin = false);
-        Task<ServiceResponse<List<Appointment>>> GetUserAppointmentsAsync();
+        Task<Appointment> BookAppointmentAsync(string userId, string docId, string slotDate, string slotTime);
+        Task<List<Appointment>> GetUserAppointmentsAsync(string userId);
+        Task<bool> CancelAppointmentAsync(CancelAppointmentRequest request, bool isAdmin);
+        Task<List<Appointment>> GetUserAppointmentsAsync();
         Task<string?> GetUserIdByAppointmentIdAsync(string appointmentId);
-        //Task<bool> CancelAppointmentAdminAsync(string userId, string appointmentId);
-        Task<bool> UpdateAppointmentAsync(Appointment appointment);
+        Task<Appointment> UpdateAppointmentAsync(UpdateAppointmentRequest request);
         Task<Appointment?> GetAppointmentByIdAsync(string appointmentId);
         Task<Doctor?> GetDoctorByAppointmentIdAsync(string appointmentId);
     }
