@@ -9,6 +9,6 @@ namespace DoctorAppointment.Services
     {
         Task<List<DoctorDto>> GetAllDoctorsAsync();
         Task<bool> ChangeAvailabilityAsync(string doctorId);
-        Task<string> LoginDoctor(LoginRequest request);
+        Task<JwtTokenResponse> LoginDoctor(LoginRequest request);
     }
 }

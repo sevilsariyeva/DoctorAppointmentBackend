@@ -30,9 +30,10 @@ namespace DoctorAppointment.Controllers
                 return Unauthorized(new { success = false, message = "Invalid credentials." });
             }
 
-            return Ok(new { success = true, response.Token });
+            return Ok(new { success = true, response.Token,response.ExpiryTime });
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost("add-doctor")]
         public async Task<IActionResult> AddDoctor([FromForm] DoctorDto doctorDto, [FromForm] IFormFile image)
         {
@@ -40,6 +41,7 @@ namespace DoctorAppointment.Controllers
             return Ok(new { success = true, message = "Doctor added successfully" });
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpGet("appointments")]
         public async Task<IActionResult> GetAllAppointments()
         {
@@ -53,6 +55,7 @@ namespace DoctorAppointment.Controllers
             return Ok(appointments);
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpDelete("cancel-appointment/{appointmentId}")]
         public async Task<IActionResult> CancelAppointment(CancelAppointmentRequest request)
         {
@@ -71,7 +74,7 @@ namespace DoctorAppointment.Controllers
             return Ok(new { success = true, message = "Appointment cancelled successfully." });
         }
 
-
+        [Authorize(Roles = "Admin")]
         [HttpGet("dashboard")]
         public async Task<IActionResult> GetDashboardData()
         {

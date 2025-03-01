@@ -12,6 +12,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Security.Authentication;
 using Microsoft.AspNetCore.Identity.Data;
+using DoctorAppointment.Utilities;
 
 public class DoctorService : IDoctorService
 {
@@ -48,7 +49,7 @@ public class DoctorService : IDoctorService
         return true;
     }
 
-    public async Task<string> LoginDoctor(LoginRequest request)
+    public async Task<JwtTokenResponse> LoginDoctor(LoginRequest request)
     {
         var doctor = await _doctorRepository.GetDoctorByEmailAsync(request.Email);
         var verificationResult = _passwordHasher.VerifyHashedPassword(doctor, doctor.Password, request.Password);
@@ -57,8 +58,7 @@ public class DoctorService : IDoctorService
             throw new InvalidCredentialException("Invalid email or password.");
         }
 
-        var token = GenerateJwtToken(doctor);
-        return token;
+        return JwtTokenGenerator.GenerateToken(doctor.Id, doctor.Email, "Doctor", _configuration);
     }
 
     public async Task<List<DoctorDto>> GetAllDoctorsAsync()
@@ -82,32 +82,7 @@ public class DoctorService : IDoctorService
             Address2=d.Address2,
         }).ToList();
     }
-    private string GenerateJwtToken(Doctor doctor)
-    {
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var secretKey = _configuration["Jwt:SecretKey"];
-        var expiryMinutes = _configuration.GetValue<int>("Jwt:ExpiryMinutes");
 
-        if (string.IsNullOrEmpty(secretKey))
-        {
-            throw new InvalidOperationException("JWT SecretKey is not configured.");
-        }
+    
 
-        var key = Encoding.UTF8.GetBytes(secretKey);
-
-        var tokenDescriptor = new SecurityTokenDescriptor
-        {
-            Subject = new ClaimsIdentity(new Claim[]
-            {
-                    new Claim(ClaimTypes.NameIdentifier, doctor.Id),
-                    new Claim(ClaimTypes.Email, doctor.Email),
-                    new Claim(ClaimTypes.Role, "Doctor")
-            }),
-            Expires = DateTime.UtcNow.AddMinutes(expiryMinutes),
-            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-        };
-
-        var token = tokenHandler.CreateToken(tokenDescriptor);
-        return tokenHandler.WriteToken(token);
-    }
 }

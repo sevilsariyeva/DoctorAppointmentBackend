@@ -77,6 +77,7 @@ namespace DoctorAppointment.Controllers
             return Ok(new { success = true, message = "Profile updated successfully.", data = updatedUser });
         }
 
+        [Authorize(Roles = "User")]
         [HttpPost("book-appointment")]
         public async Task<IActionResult> BookAppointment([FromBody] BookAppointmentRequest request)
         {
@@ -90,8 +91,7 @@ namespace DoctorAppointment.Controllers
             return BadRequest(new { success = false, message = "Doctor is not available or slots have been booked." });
         }
 
-
-        [Authorize]
+        [Authorize(Roles = "User")]
         [HttpGet("appointments")]
         public async Task<IActionResult> GetUserAppointments()
         {
@@ -121,6 +121,7 @@ namespace DoctorAppointment.Controllers
                 : BadRequest(new { success = false, message = "Failed to cancel the appointment. Please try again later." });
         }
 
+        [Authorize(Roles = "User")]
         [HttpPost("create-payment")]
         public async Task<IActionResult> CreatePaymentIntent([FromBody] PaymentRequest paymentRequest)
         {

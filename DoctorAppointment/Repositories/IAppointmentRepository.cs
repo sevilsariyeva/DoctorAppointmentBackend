@@ -14,5 +14,6 @@ namespace DoctorAppointment.Repositories
         Task<bool> UpdateAppointmentAsync(Appointment appointment);
         Task<Appointment?> GetAppointmentByIdAsync(string appointmentId);
         Task<Doctor?> GetDoctorByAppointmentIdAsync(string appointmentId);
+        Task<List<Appointment>> GetAppointmentsByDoctorIdAsync(string doctorId);
     }
 }

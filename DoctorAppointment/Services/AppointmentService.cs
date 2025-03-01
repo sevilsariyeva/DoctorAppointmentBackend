@@ -205,6 +205,31 @@ namespace DoctorAppointment.Services
 
             return doctor;
         }
+        public async Task<List<Appointment>> GetDoctorAppointmentsAsync(string doctorId)
+        {
+            if (string.IsNullOrEmpty(doctorId))
+            {
+                return new List<Appointment>();
+            }
+
+            var appointments = await _appointmentRepository.GetAppointmentsByDoctorIdAsync(doctorId);
+
+            return appointments.Select(a => new Appointment
+            {
+                Id = a.Id,
+                UserId = a.UserId,
+                DocId = a.DocId,
+                SlotDate = a.SlotDate,
+                SlotTime = a.SlotTime,
+                UserData = a.UserData, 
+                DocData = a.DocData,
+                Amount = a.Amount,
+                Date = a.Date,
+                Cancelled = a.Cancelled,
+                Payment = a.Payment,
+                IsCompleted = a.IsCompleted
+            }).ToList();
+        }
 
     }
 }

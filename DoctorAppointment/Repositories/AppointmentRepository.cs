@@ -118,6 +118,15 @@ namespace DoctorAppointment.Repositories
             return doctor;
         }
 
-        
+        public async Task<List<Appointment>> GetAppointmentsByDoctorIdAsync(string doctorId)
+        {
+            return await _appointmentsCollection
+                .Find(a => a.DocId == doctorId)
+                .SortByDescending(a => a.SlotDate)
+                .ThenByDescending(a => a.SlotTime)
+                .ToListAsync();
+        }
+
+
     }
 }

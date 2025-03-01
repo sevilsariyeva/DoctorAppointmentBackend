@@ -13,5 +13,6 @@ namespace DoctorAppointment.Services
         Task<Appointment> UpdateAppointmentAsync(UpdateAppointmentRequest request);
         Task<Appointment?> GetAppointmentByIdAsync(string appointmentId);
         Task<Doctor?> GetDoctorByAppointmentIdAsync(string appointmentId);
+        Task<List<Appointment>> GetDoctorAppointmentsAsync(string doctorId);
     }
 }
