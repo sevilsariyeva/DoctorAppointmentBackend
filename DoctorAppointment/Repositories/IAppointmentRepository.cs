@@ -15,5 +15,9 @@ namespace DoctorAppointment.Repositories
         Task<Appointment?> GetAppointmentByIdAsync(string appointmentId);
         Task<Doctor?> GetDoctorByAppointmentIdAsync(string appointmentId);
         Task<List<Appointment>> GetAppointmentsByDoctorIdAsync(string doctorId);
+        Task<decimal> GetDoctorTotalEarningsAsync(string doctorId);
+        Task<long> GetDoctorAppointmentsCountAsync(string doctorId);
+        Task<List<Appointment>> GetLatestAppointmentsByDoctorIdAsync(string doctorId, int count);
+        Task<long> GetDoctorPatientsCountAsync(string doctorId);
     }
 }

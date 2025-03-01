@@ -116,7 +116,7 @@ namespace DoctorAppointment.Services
                 slotTimes.Remove(appointment.SlotTime);
             }
 
-            if (isAdmin && appointment.Payment != null)
+            if (isAdmin && appointment.Payment != 0)
             {
                 appointment.Payment -= doctor.Fees;
             }
@@ -158,8 +158,7 @@ namespace DoctorAppointment.Services
             {
                 throw new NotFoundException($"Appointment with ID {request.AppointmentId} not found.");
             }
-
-            appointment.Amount = request.Amount;
+            appointment.IsCompleted = request.IsCompleted;
             appointment.Cancelled = request.Cancelled;
             appointment.Payment = request.Payment;
 

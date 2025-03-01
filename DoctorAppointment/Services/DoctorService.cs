@@ -17,16 +17,18 @@ using DoctorAppointment.Utilities;
 public class DoctorService : IDoctorService
 {
     private readonly IDoctorRepository _doctorRepository;
+    private readonly IAppointmentRepository _appointmentRepository;
     private readonly IWebHostEnvironment _environment;
     private readonly IPasswordHasher<Doctor> _passwordHasher;
     private readonly IConfiguration _configuration;
 
-    public DoctorService(IDoctorRepository doctorRepository, IWebHostEnvironment environment, IPasswordHasher<Doctor> passwordHasher, IConfiguration configuration)
+    public DoctorService(IDoctorRepository doctorRepository, IWebHostEnvironment environment, IPasswordHasher<Doctor> passwordHasher, IConfiguration configuration, IAppointmentRepository appointmentRepository)
     {
         _doctorRepository = doctorRepository;
         _environment = environment;
         _passwordHasher = passwordHasher;
         _configuration = configuration;
+        _appointmentRepository = appointmentRepository;
     }
 
 
@@ -83,6 +85,16 @@ public class DoctorService : IDoctorService
         }).ToList();
     }
 
-    
+    public async Task<DoctorDashboardDto> GetDoctorDashboardStatisticsAsync(string doctorId, int latestAppointmentsCount)
+    {
+        return new DoctorDashboardDto
+        {
+            Appointments = await _appointmentRepository.GetDoctorAppointmentsCountAsync(doctorId),
+            Earnings = await _appointmentRepository.GetDoctorTotalEarningsAsync(doctorId),
+            LatestAppointments = await _appointmentRepository.GetLatestAppointmentsByDoctorIdAsync(doctorId, latestAppointmentsCount),
+            Patients = await _appointmentRepository.GetDoctorPatientsCountAsync(doctorId)
+        };
+    }
+
 
 }

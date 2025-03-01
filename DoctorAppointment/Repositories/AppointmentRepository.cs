@@ -117,6 +117,35 @@ namespace DoctorAppointment.Repositories
             var doctor = await _doctorRepository.GetDoctorByIdAsync(appointment.DocId);
             return doctor;
         }
+        public async Task<long> GetDoctorAppointmentsCountAsync(string doctorId)
+        {
+            return await _appointmentsCollection.CountDocumentsAsync(a => a.DocData.Id == doctorId);
+        }
+        public async Task<long> GetDoctorPatientsCountAsync(string doctorId)
+        {
+            var filter = Builders<Appointment>.Filter.Eq(a => a.DocId, doctorId);
+
+            var patientsCursor = await _appointmentsCollection.DistinctAsync<string>("UserId", filter);
+
+            var patientsList = await patientsCursor.ToListAsync();
+
+            return patientsList.Count;
+        }
+
+        public async Task<decimal> GetDoctorTotalEarningsAsync(string doctorId)
+        {
+            var filter = Builders<Appointment>.Filter.And(
+                Builders<Appointment>.Filter.Eq(a => a.DocData.Id, doctorId),
+                Builders<Appointment>.Filter.Ne(a => a.Cancelled, true) 
+            );
+
+            var earnings = await _appointmentsCollection
+                .Find(filter)
+                .Project(a => a.Amount ?? 0) 
+                .ToListAsync();
+
+            return earnings.Sum();
+        }
 
         public async Task<List<Appointment>> GetAppointmentsByDoctorIdAsync(string doctorId)
         {
@@ -127,6 +156,15 @@ namespace DoctorAppointment.Repositories
                 .ToListAsync();
         }
 
+        public async Task<List<Appointment>> GetLatestAppointmentsByDoctorIdAsync(string doctorId, int count = 5)
+        {
+            return await _appointmentsCollection
+                .Find(a => a.DocId == doctorId)
+                .SortByDescending(a => a.SlotDate)
+                .ThenByDescending(a => a.SlotTime)
+                .Limit(count)
+                .ToListAsync();
+        }
 
     }
 }

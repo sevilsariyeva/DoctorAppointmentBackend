@@ -137,7 +137,7 @@ namespace DoctorAppointment.Controllers
                 return BadRequest(new { success = false, message = "Doctor's fees are not available." });
             }
 
-            appointment.Payment = doctor.Fees;
+            appointment.Amount = doctor.Fees;
 
             var paymentSuccess = true; 
 
@@ -150,6 +150,7 @@ namespace DoctorAppointment.Controllers
             {
                 AppointmentId = appointment.Id,
                 Payment = appointment.Payment,
+                Amount=appointment.Amount,
             };
 
             await _appointmentService.UpdateAppointmentAsync(updateRequest);
