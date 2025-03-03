@@ -139,6 +139,7 @@ namespace DoctorAppointment.Controllers
             }
 
             appointment.Amount = doctor.Fees;
+            appointment.Payment = paymentRequest.Payment;
 
             var paymentSuccess = true; 
 
