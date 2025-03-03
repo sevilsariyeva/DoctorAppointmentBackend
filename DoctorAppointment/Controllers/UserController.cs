@@ -1,4 +1,5 @@
-﻿using DoctorAppointment.Models;
+﻿using DoctorAppointment.Exceptions;
+using DoctorAppointment.Models;
 using DoctorAppointment.Models.Dtos;
 using DoctorAppointment.Services;
 using Microsoft.AspNetCore.Authorization;

@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Identity.Data;
 using System.Security.Authentication;
 using Microsoft.AspNetCore.Http.HttpResults;
 using DoctorAppointment.Utilities;
+using DoctorAppointment.Exceptions;
 
 namespace DoctorAppointment.Services
 {
@@ -39,13 +40,13 @@ namespace DoctorAppointment.Services
 
             if (!IsStrongPassword(request.Password))
             {
-                throw new ArgumentException("Password must be at least 8 characters long and contain uppercase, lowercase, and a digit.");
+                throw new WeakPasswordException("Password must be at least 8 characters long and contain uppercase, lowercase, and a digit.");
             }
 
             var existingUser = await _userRepository.GetUserByEmailAsync(request.Email);
             if (existingUser != null)
             {
-                throw new InvalidOperationException("Email is already in use.");
+                throw new EmailAlreadyExistsException("Email is already in use.");
             }
 
             var newUser = new User
