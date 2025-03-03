@@ -34,9 +34,19 @@ namespace DoctorAppointment.Services
                 throw new NotFoundException("Doctor not found.");
             }
 
-            if (!doctor.Available || (doctor.SlotsBooked.ContainsKey(slotDate) && doctor.SlotsBooked[slotDate].Contains(slotTime)))
+            if (!doctor.Available)
             {
-                throw new DoctorUnavailableException("Doctor not available or slot is already booked.");
+                throw new DoctorUnavailableException("Doctor is not available.");
+            }
+
+            if (doctor.SlotsBooked == null)
+            {
+                doctor.SlotsBooked = new Dictionary<string, List<string>>();
+            }
+
+            if (doctor.SlotsBooked.ContainsKey(slotDate) && doctor.SlotsBooked[slotDate].Contains(slotTime))
+            {
+                throw new DoctorUnavailableException("Slot is already booked.");
             }
 
             var user = await _userRepository.GetUserByIdAsync(userId);
@@ -45,7 +55,11 @@ namespace DoctorAppointment.Services
                 throw new NotFoundException("User not found.");
             }
 
-            doctor.SlotsBooked.TryAdd(slotDate, new List<string>());
+            if (!doctor.SlotsBooked.ContainsKey(slotDate))
+            {
+                doctor.SlotsBooked[slotDate] = new List<string>();
+            }
+
             doctor.SlotsBooked[slotDate].Add(slotTime);
 
             var appointment = new Appointment
@@ -60,13 +74,12 @@ namespace DoctorAppointment.Services
                 Date = DateTime.UtcNow
             };
 
-            
             await _userRepository.AddAppointmentAsync(appointment);
             await _doctorRepository.UpdateDoctorAsync(doctor);
 
-
             return appointment;
         }
+
 
         public async Task<List<Appointment>> GetUserAppointmentsAsync(string userId)
         {

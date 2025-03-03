@@ -61,7 +61,7 @@ namespace DoctorAppointment.Services
                 Speciality = doctorDto.Speciality,
                 Degree = doctorDto.Degree,
                 Experience = doctorDto.Experience,
-                Fees = doctorDto.Fees,
+                Fees = doctorDto.Fees.GetValueOrDefault(),
                 About = doctorDto.About,
                 Address = new Address
                 {

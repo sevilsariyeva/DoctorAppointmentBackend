@@ -69,6 +69,27 @@ namespace DoctorAppointment.Controllers
             return Ok(new { success = true, appointments });
         }
 
+        [Authorize(Roles = "Doctor")]
+        [HttpGet("profile")]
+        public async Task<IActionResult> GetDoctorProfile()
+        {
+            var doctorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(doctorId))
+            {
+                return Unauthorized(new { success = false, message = "Invalid token." });
+            }
+
+            var profileData = await _doctorService.GetDoctorProfileAsync(doctorId);
+            if (profileData == null)
+            {
+                return NotFound(new { success = false, message = "Doctor profile not found." });
+            }
+
+            return Ok(new { success = true, profileData });
+        }
+
+
+
         [Authorize(Roles ="Doctor")]
         [HttpGet("dashboard")]
         public async Task<IActionResult> GetDoctorDashboardStats()
@@ -82,6 +103,34 @@ namespace DoctorAppointment.Controllers
             var statistics = await _doctorService.GetDoctorDashboardStatisticsAsync(doctorId,5);
             return Ok(new { success = true, statistics });
         }
+
+        [HttpGet("{doctorId}")]
+        public async Task<IActionResult> GetDoctorById(string doctorId)
+        {
+            var doctor = await _doctorService.GetDoctorByIdAsync(doctorId);
+            return Ok(new { success = true, doctor });
+        }
+
+
+        [Authorize(Roles = "Doctor")]
+        [HttpPut("update-profile")]
+        public async Task<IActionResult> UpdateDoctorProfile([FromBody] DoctorDto request)
+        {
+            var doctorId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(doctorId))
+            {
+                return Unauthorized(new { success = false, message = "Invalid token." });
+            }
+
+            var updatedDoctor = await _doctorService.UpdateDoctorAsync(doctorId, request);
+            if (updatedDoctor == null)
+            {
+                return BadRequest(new { success = false, message = "Failed to update profile." });
+            }
+
+            return Ok(new { success = true, message = "Doctor profile updated successfully.", updatedDoctor });
+        }
+
 
         [Authorize(Roles = "Doctor")]
         [HttpPut("complete-appointment/{appointmentId}")]

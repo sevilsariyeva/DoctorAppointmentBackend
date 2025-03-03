@@ -13,6 +13,7 @@ using System.Text;
 using System.Security.Authentication;
 using Microsoft.AspNetCore.Identity.Data;
 using DoctorAppointment.Utilities;
+using Microsoft.EntityFrameworkCore;
 
 public class DoctorService : IDoctorService
 {
@@ -62,6 +63,76 @@ public class DoctorService : IDoctorService
 
         return JwtTokenGenerator.GenerateToken(doctor.Id, doctor.Email, "Doctor", _configuration);
     }
+
+    public async Task<DoctorDto> GetDoctorProfileAsync(string doctorId)
+    {
+        var doctor = await _doctorRepository.GetDoctorByIdAsync(doctorId);
+
+        if (doctor == null)
+        {
+            return null;
+        }
+
+        return new DoctorDto
+        {
+            Id = doctor.Id,
+            Name = doctor.Name,
+            Email = doctor.Email,
+            Degree = doctor.Degree,
+            Speciality=doctor.Speciality,
+            Image=doctor.Image,
+            Fees=doctor.Fees,
+            About=doctor.About,
+            Address1=doctor.Address.Line1,
+            Address2=doctor.Address.Line2,
+            Available=doctor.Available
+        };
+    }
+
+    public async Task<Doctor> GetDoctorByIdAsync(string doctorId)
+    {
+        return await _doctorRepository.GetDoctorByIdAsync(doctorId);
+    }
+
+    public async Task<DoctorDto> UpdateDoctorAsync(string doctorId, DoctorDto request)
+    {
+        var doctor = await _doctorRepository.GetDoctorByIdAsync(doctorId);
+        if (doctor == null)
+        {
+            return null;
+        }
+
+        doctor.Name = request.Name ?? doctor.Name;
+        doctor.Email = request.Email ?? doctor.Email;
+        doctor.Degree = request.Degree ?? doctor.Degree;
+        doctor.Speciality = request.Speciality ?? doctor.Speciality;
+        doctor.Image = request.Image ?? doctor.Image;
+        doctor.Fees = request.Fees ?? doctor.Fees;
+        doctor.About = request.About ?? doctor.About;
+        doctor.Address.Line1 = request.Address1 ?? doctor.Address.Line1;
+        doctor.Address.Line2 = request.Address2 ?? doctor.Address.Line2;
+        doctor.Experience = request.Experience ?? doctor.Experience;
+        doctor.Available = request.Available ?? doctor.Available;
+
+        await _doctorRepository.UpdateDoctorAsync(doctor);
+
+        return new DoctorDto
+        {
+            Id = doctor.Id,
+            Name = doctor.Name,
+            Email = doctor.Email,
+            Degree = doctor.Degree,
+            Speciality = doctor.Speciality,
+            Image = doctor.Image,
+            Fees = doctor.Fees,
+            About = doctor.About,
+            Address1 = doctor.Address.Line1,
+            Address2 = doctor.Address.Line2,
+            Available = doctor.Available,
+            Experience = doctor.Experience
+        };
+    }
+
 
     public async Task<List<DoctorDto>> GetAllDoctorsAsync()
     {
