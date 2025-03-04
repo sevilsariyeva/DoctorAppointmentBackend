@@ -33,6 +33,10 @@ namespace DoctorAppointment.Middlewares
             {
                 await HandleExceptionAsync(context, ex, HttpStatusCode.BadRequest, ex.Message);
             }
+            catch (EmailValidationException ex)
+            {
+                await HandleExceptionAsync(context, ex, HttpStatusCode.BadRequest, ex.Message);
+            }
             catch (ArgumentException ex)
             {
                 await HandleExceptionAsync(context, ex, HttpStatusCode.BadRequest, ex.Message);

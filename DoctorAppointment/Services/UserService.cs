@@ -14,6 +14,7 @@ using System.Security.Authentication;
 using Microsoft.AspNetCore.Http.HttpResults;
 using DoctorAppointment.Utilities;
 using DoctorAppointment.Exceptions;
+using DoctorAppointment.Helpers;
 
 namespace DoctorAppointment.Services
 {
@@ -33,12 +34,12 @@ namespace DoctorAppointment.Services
 
         public async Task<JwtTokenResponse> RegisterUserAsync(RegisterUserRequest request)
         {
-            if (!IsValidEmail(request.Email))
+            if (!RegisterHelper.IsValidEmail(request.Email))
             {
                 throw new ArgumentException("Invalid email format.", nameof(request.Email));
             }
 
-            if (!IsStrongPassword(request.Password))
+            if (!RegisterHelper.IsStrongPassword(request.Password))
             {
                 throw new WeakPasswordException("Password must be at least 8 characters long and contain uppercase, lowercase, and a digit.");
             }
@@ -47,6 +48,10 @@ namespace DoctorAppointment.Services
             if (existingUser != null)
             {
                 throw new EmailAlreadyExistsException("Email is already in use.");
+            }
+            if (!await EmailHelper.EmailExists(request.Email))
+            {
+                throw new EmailValidationException("Email does not exist.");
             }
 
             var newUser = new User
@@ -63,7 +68,7 @@ namespace DoctorAppointment.Services
             {
                 throw new Exception("User registration failed.");
             }
-
+            SendEmailHelper.SendEmail(request.Email, "Welcome to DocApp!", "Dear Patient,\r\nWelcome to the DocApp website! We are glad to have you with us. You can now easily book appointments, consult with doctors, and manage your health records conveniently.\r\n\r\nIf you have any questions, feel free to contact our support team.\r\n\r\nBest regards,\r\nDocApp Team");
             return JwtTokenGenerator.GenerateToken(newUser.Id.ToString(), newUser.Email, "User", _configuration);
         }
 
@@ -184,19 +189,6 @@ namespace DoctorAppointment.Services
         }
 
 
-        private bool IsValidEmail(string email)
-        {
-            var emailRegex = new Regex(@"^[^@\s]+@[^@\s]+\.[^@\s]+$");
-            return emailRegex.IsMatch(email);
-        }
-
-        private bool IsStrongPassword(string password)
-        {
-            return password.Length >= 8 &&
-                   password.Any(char.IsUpper) &&
-                   password.Any(char.IsLower) &&
-                   password.Any(char.IsDigit);
-        }
 
     }
 }

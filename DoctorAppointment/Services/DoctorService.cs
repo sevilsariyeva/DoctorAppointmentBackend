@@ -142,17 +142,10 @@ public class DoctorService : IDoctorService
         {
             Id = d.Id,
             Name=d.Name,
-            Email = d.Email,
-            Password = d.Password,
             Speciality = d.Speciality,
             Image = d.Image,
             Degree = d.Degree,
-            Experience = d.Experience,
-            Fees = d.Fees,
-            About = d.About,
             Available=d.Available,
-            Address1=d.Address1,
-            Address2=d.Address2,
         }).ToList();
     }
 
