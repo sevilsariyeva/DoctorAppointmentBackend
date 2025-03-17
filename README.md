@@ -1,14 +1,14 @@
 Doctor Appointment System
-📌 About the Project
+📌 About the Project:
 This is a Doctor Appointment Booking System built with .NET Core and MongoDB. The system supports Admin, Doctor, and User roles.
 
-📦 Technologies Used
+📦 Technologies Used:
 Backend: .NET Core
 Database: MongoDB
 Authentication: JWT Token
 Email Service: Gmail API
 Chatbot: OpenAI API
-🔑 Features
+🔑 Features:
 ✔ User registration and login (Register/Login)
 ✔ Email verification via Gmail API
 ✔ AI-powered chatbot (OpenAI API)
